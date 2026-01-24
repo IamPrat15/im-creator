@@ -307,62 +307,551 @@ export default function IMCreatorApp() {
 
   const renderInput = (q) => {
     const val = formData[q.id] || q.defaultValue || '';
-    const baseStyle = { width: '100%', padding: '10px 12px', border: `1px solid ${errors[q.id] ? '#EF4444' : '#D1D5DB'}`, borderRadius: '8px', fontSize: '14px', boxSizing: 'border-box', backgroundColor: 'white' };
+    const baseStyle = {
+      width: '100%',
+      padding: '10px 12px',
+      border: `1px solid ${errors[q.id] ? '#EF4444' : '#D1D5DB'}`,
+      borderRadius: '8px',
+      fontSize: '14px',
+      boxSizing: 'border-box',
+      backgroundColor: '#FFFFFF',
+      color: '#111827'
+    };
+
     switch (q.type) {
-      case 'textarea': return <textarea value={val} onChange={e => updateField(q.id, e.target.value)} placeholder={q.placeholder} rows={4} style={{ ...baseStyle, resize: 'vertical', fontFamily: 'inherit', minHeight: '100px' }} />;
-      case 'select': return <select value={val} onChange={e => updateField(q.id, e.target.value)} style={baseStyle}><option value="">Select...</option>{q.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}</select>;
+      case 'textarea':
+        return (
+          <textarea
+            value={val}
+            onChange={e => updateField(q.id, e.target.value)}
+            placeholder={q.placeholder}
+            rows={4}
+            style={{
+              ...baseStyle,
+              resize: 'vertical',
+              fontFamily: 'inherit',
+              minHeight: '100px',
+              color: '#111827'
+            }}
+          />
+        );
+      case 'select':
+        return (
+          <select
+            value={val}
+            onChange={e => updateField(q.id, e.target.value)}
+            style={{ ...baseStyle, color: '#111827' }}
+          >
+            <option value="">Select...</option>
+            {q.options?.map(o => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+        );
       case 'multiselect':
         const sel = Array.isArray(val) ? val : [];
-        return <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>{q.options?.map(o => (<label key={o.value} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', backgroundColor: sel.includes(o.value) ? '#FDF2F4' : '#F9FAFB', border: `1px solid ${sel.includes(o.value) ? '#7C1034' : '#E5E7EB'}`, borderRadius: '6px', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }}><input type="checkbox" checked={sel.includes(o.value)} onChange={e => updateField(q.id, e.target.checked ? [...sel, o.value] : sel.filter(v => v !== o.value))} style={{ accentColor: '#7C1034' }} />{o.label}</label>))}</div>;
-      case 'date': return <input type="date" value={val} onChange={e => updateField(q.id, e.target.value)} style={baseStyle} />;
-      case 'number': return <input type="number" value={val} onChange={e => updateField(q.id, e.target.value)} placeholder={q.placeholder} style={baseStyle} />;
-      default: return <input type="text" value={val} onChange={e => updateField(q.id, e.target.value)} placeholder={q.placeholder} style={baseStyle} />;
+        return (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {q.options?.map(o => (
+              <label
+                key={o.value}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 12px',
+                  backgroundColor: sel.includes(o.value) ? '#FDF2F4' : '#F9FAFB',
+                  border: `1px solid ${sel.includes(o.value) ? '#7C1034' : '#E5E7EB'}`,
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  color: '#374151'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={sel.includes(o.value)}
+                  onChange={e => updateField(q.id, e.target.checked ? [...sel, o.value] : sel.filter(v => v !== o.value))}
+                  style={{ accentColor: '#7C1034' }}
+                />
+                {o.label}
+              </label>
+            ))}
+          </div>
+        );
+      case 'date':
+        return (
+          <input
+            type="date"
+            value={val}
+            onChange={e => updateField(q.id, e.target.value)}
+            style={{ ...baseStyle, color: '#111827' }}
+          />
+        );
+      case 'number':
+        return (
+          <input
+            type="number"
+            value={val}
+            onChange={e => updateField(q.id, e.target.value)}
+            placeholder={q.placeholder}
+            style={{ ...baseStyle, color: '#111827' }}
+          />
+        );
+      default:
+        return (
+          <input
+            type="text"
+            value={val}
+            onChange={e => updateField(q.id, e.target.value)}
+            placeholder={q.placeholder}
+            style={{ ...baseStyle, color: '#111827' }}
+          />
+        );
     }
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#F9FAFB', fontFamily: "'DM Sans', -apple-system, sans-serif" }}>
-      {notification && (<div style={{ position: 'fixed', top: '20px', right: '20px', zIndex: 1000, padding: '12px 20px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', backgroundColor: notification.type === 'success' ? '#10B981' : notification.type === 'error' ? '#EF4444' : '#3B82F6', color: 'white', fontSize: '14px', fontWeight: '500' }}>{notification.type === 'success' && '✅ '}{notification.type === 'error' && '❌ '}{notification.message}</div>)}
-      <header style={{ backgroundColor: 'white', borderBottom: '1px solid #E5E7EB', position: 'sticky', top: 0, zIndex: 50 }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#F9FAFB', fontFamily: "'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+      {/* Notification */}
+      {notification && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          right: '20px',
+          zIndex: 1000,
+          padding: '12px 20px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          backgroundColor: notification.type === 'success' ? '#10B981' : notification.type === 'error' ? '#EF4444' : '#3B82F6',
+          color: '#FFFFFF',
+          fontSize: '14px',
+          fontWeight: '500'
+        }}>
+          {notification.type === 'success' && '✅ '}
+          {notification.type === 'error' && '❌ '}
+          {notification.message}
+        </div>
+      )}
+
+      {/* Header */}
+      <header style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E5E7EB', position: 'sticky', top: 0, zIndex: 50 }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '40px', height: '40px', backgroundColor: '#7C1034', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '20px' }}>📄</div>
-            <div><h1 style={{ fontSize: '18px', fontWeight: '700', color: '#7C1034', margin: 0 }}>IM Creator</h1><p style={{ fontSize: '11px', color: '#6B7280', margin: 0 }}>RMB Investment Banking</p></div>
+            <div style={{ width: '40px', height: '40px', backgroundColor: '#7C1034', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FFFFFF', fontSize: '20px' }}>📄</div>
+            <div>
+              <h1 style={{ fontSize: '18px', fontWeight: '700', color: '#7C1034', margin: 0 }}>IM Creator</h1>
+              <p style={{ fontSize: '11px', color: '#6B7280', margin: 0 }}>RMB Investment Banking</p>
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '500', backgroundColor: apiStatus === 'connected' ? '#ECFDF5' : apiStatus === 'disconnected' ? '#FEE2E2' : '#F3F4F6', color: apiStatus === 'connected' ? '#047857' : apiStatus === 'disconnected' ? '#DC2626' : '#6B7280' }}>{apiStatus === 'connected' ? '🟢 API Connected' : apiStatus === 'disconnected' ? '🔴 API Offline' : '⏳ Checking...'}</div>
-            <button onClick={handleSaveDraft} style={{ padding: '8px 16px', backgroundColor: 'white', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', fontWeight: '500' }}>💾 Save Draft</button>
+            <div style={{
+              padding: '4px 10px',
+              borderRadius: '20px',
+              fontSize: '11px',
+              fontWeight: '500',
+              backgroundColor: apiStatus === 'connected' ? '#ECFDF5' : apiStatus === 'disconnected' ? '#FEE2E2' : '#F3F4F6',
+              color: apiStatus === 'connected' ? '#047857' : apiStatus === 'disconnected' ? '#DC2626' : '#6B7280'
+            }}>
+              {apiStatus === 'connected' ? '🟢 API Connected' : apiStatus === 'disconnected' ? '🔴 API Offline' : '⏳ Checking...'}
+            </div>
+            <button
+              onClick={handleSaveDraft}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #D1D5DB',
+                borderRadius: '8px',
+                fontSize: '13px',
+                cursor: 'pointer',
+                fontWeight: '500',
+                color: '#374151'
+              }}
+            >
+              💾 Save Draft
+            </button>
           </div>
         </div>
       </header>
-      <div style={{ backgroundColor: 'white', borderBottom: '1px solid #E5E7EB', padding: '16px 20px' }}>
+
+      {/* Progress Bar */}
+      <div style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E5E7EB', padding: '16px 20px' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#6B7280', marginBottom: '8px' }}><span>Overall Progress</span><span style={{ fontWeight: '600', color: '#7C1034' }}>{progress}% Complete</span></div>
-          <div style={{ height: '8px', backgroundColor: '#E5E7EB', borderRadius: '4px', overflow: 'hidden' }}><div style={{ height: '100%', width: `${progress}%`, backgroundColor: '#7C1034', borderRadius: '4px', transition: 'width 0.4s ease' }} /></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#6B7280', marginBottom: '8px' }}>
+            <span>Overall Progress</span>
+            <span style={{ fontWeight: '600', color: '#7C1034' }}>{progress}% Complete</span>
+          </div>
+          <div style={{ height: '8px', backgroundColor: '#E5E7EB', borderRadius: '4px', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${progress}%`, backgroundColor: '#7C1034', borderRadius: '4px', transition: 'width 0.4s ease' }} />
+          </div>
         </div>
       </div>
+
+      {/* Main Content */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 20px', display: 'flex', gap: '24px' }}>
+        {/* Sidebar */}
         <div style={{ width: '240px', flexShrink: 0 }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #E5E7EB', overflow: 'hidden', position: 'sticky', top: '120px' }}>
-            <div style={{ padding: '14px 16px', backgroundColor: '#FDF2F4', borderBottom: '1px solid #E5E7EB' }}><h2 style={{ fontSize: '14px', fontWeight: '600', margin: 0, color: '#7C1034' }}>IM Sections</h2></div>
-            <div style={{ padding: '8px' }}>{questionnaire.phases.map((p, i) => (<button key={p.id} onClick={() => setCurrentPhase(i)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', marginBottom: '4px', border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s', backgroundColor: currentPhase === i ? '#7C1034' : completedPhases.includes(i) ? '#ECFDF5' : 'transparent', color: currentPhase === i ? 'white' : completedPhases.includes(i) ? '#047857' : '#4B5563', fontSize: '13px' }}><span style={{ fontSize: '16px' }}>{completedPhases.includes(i) && currentPhase !== i ? '✅' : p.icon}</span><span style={{ fontWeight: '500' }}>{p.name}</span></button>))}</div>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '12px', border: '1px solid #E5E7EB', overflow: 'hidden', position: 'sticky', top: '120px' }}>
+            <div style={{ padding: '14px 16px', backgroundColor: '#FDF2F4', borderBottom: '1px solid #E5E7EB' }}>
+              <h2 style={{ fontSize: '14px', fontWeight: '600', margin: 0, color: '#7C1034' }}>IM Sections</h2>
+            </div>
+            <div style={{ padding: '8px' }}>
+              {questionnaire.phases.map((p, i) => (
+                <button
+                  key={p.id}
+                  onClick={() => setCurrentPhase(i)}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    marginBottom: '4px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.2s',
+                    backgroundColor: currentPhase === i ? '#7C1034' : completedPhases.includes(i) ? '#ECFDF5' : 'transparent',
+                    color: currentPhase === i ? '#FFFFFF' : completedPhases.includes(i) ? '#047857' : '#4B5563',
+                    fontSize: '13px'
+                  }}
+                >
+                  <span style={{ fontSize: '16px' }}>{completedPhases.includes(i) && currentPhase !== i ? '✅' : p.icon}</span>
+                  <span style={{ fontWeight: '500' }}>{p.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
+
+        {/* Form Area */}
         <div style={{ flex: 1 }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '12px', border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+            {/* Phase Header */}
             <div style={{ padding: '16px 20px', backgroundColor: '#FDF2F4', borderBottom: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div><h2 style={{ fontSize: '16px', fontWeight: '600', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><span>{phase.icon}</span> {phase.name}</h2><p style={{ fontSize: '12px', color: '#6B7280', margin: '4px 0 0 0' }}>{phase.description}</p></div>
-              <div style={{ display: 'flex', gap: '8px' }}><button onClick={() => setShowConfig(!showConfig)} style={{ padding: '6px 12px', backgroundColor: 'white', border: '1px solid #D1D5DB', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>⚙️ Configure</button><button onClick={() => setShowAddQ(true)} style={{ padding: '6px 12px', backgroundColor: '#7C1034', color: 'white', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>➕ Add Question</button></div>
+              <div>
+                <h2 style={{ fontSize: '16px', fontWeight: '600', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', color: '#111827' }}>
+                  <span>{phase.icon}</span> {phase.name}
+                </h2>
+                <p style={{ fontSize: '12px', color: '#6B7280', margin: '4px 0 0 0' }}>{phase.description}</p>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => setShowConfig(!showConfig)}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    color: '#374151'
+                  }}
+                >
+                  ⚙️ Configure
+                </button>
+                <button
+                  onClick={() => setShowAddQ(true)}
+                  style={{
+                    padding: '6px 12px',
+                    backgroundColor: '#7C1034',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  ➕ Add Question
+                </button>
+              </div>
             </div>
-            {showConfig && (<div style={{ padding: '16px 20px', backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}><h4 style={{ fontSize: '13px', fontWeight: '600', margin: '0 0 10px 0' }}>Toggle Question Visibility:</h4><div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>{phase.questions.map(q => (<label key={q.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', backgroundColor: q.isHidden ? '#FEE2E2' : '#ECFDF5', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}><input type="checkbox" checked={!q.isHidden} onChange={() => toggleHide(q.id)} />{q.label}{q.isCustom && (<button onClick={(e) => { e.preventDefault(); removeQ(q.id); }} style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '0 4px', fontSize: '16px' }}>×</button>)}</label>))}</div></div>)}
-            <div style={{ padding: '24px 20px' }}>{questions.map(q => (<div key={q.id} style={{ marginBottom: '20px' }}><label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>{q.label}{q.required && <span style={{ color: '#EF4444', marginLeft: '4px' }}>*</span>}{q.isCustom && <span style={{ fontSize: '10px', backgroundColor: '#FDF2F4', color: '#7C1034', padding: '2px 6px', borderRadius: '4px', marginLeft: '8px' }}>Custom</span>}</label>{renderInput(q)}{q.helpText && <p style={{ fontSize: '11px', color: '#9CA3AF', margin: '6px 0 0 0' }}>💡 {q.helpText}</p>}{errors[q.id] && <p style={{ fontSize: '11px', color: '#EF4444', margin: '6px 0 0 0' }}>⚠️ {errors[q.id]}</p>}</div>))}</div>
-            <div style={{ padding: '16px 20px', backgroundColor: '#F9FAFB', borderTop: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between' }}><button onClick={() => setCurrentPhase(Math.max(0, currentPhase - 1))} disabled={currentPhase === 0} style={{ padding: '10px 16px', backgroundColor: 'white', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', cursor: currentPhase === 0 ? 'not-allowed' : 'pointer', opacity: currentPhase === 0 ? 0.5 : 1 }}>← Previous</button><div style={{ display: 'flex', gap: '10px' }}><button onClick={() => setShowReport(true)} style={{ padding: '10px 16px', backgroundColor: 'white', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>📋 Validate</button>{currentPhase === questionnaire.phases.length - 1 ? (<button onClick={handleGenerate} disabled={isGenerating} style={{ padding: '10px 24px', backgroundColor: isGenerating ? '#9CA3AF' : '#7C1034', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: isGenerating ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>{isGenerating ? '⏳ Generating...' : '🚀 Generate IM'}</button>) : (<button onClick={handleNext} style={{ padding: '10px 24px', backgroundColor: '#7C1034', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Continue →</button>)}</div></div>
+
+            {/* Config Panel */}
+            {showConfig && (
+              <div style={{ padding: '16px 20px', backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+                <h4 style={{ fontSize: '13px', fontWeight: '600', margin: '0 0 10px 0', color: '#111827' }}>Toggle Question Visibility:</h4>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {phase.questions.map(q => (
+                    <label
+                      key={q.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 10px',
+                        backgroundColor: q.isHidden ? '#FEE2E2' : '#ECFDF5',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        color: q.isHidden ? '#991B1B' : '#047857'
+                      }}
+                    >
+                      <input type="checkbox" checked={!q.isHidden} onChange={() => toggleHide(q.id)} />
+                      {q.label}
+                      {q.isCustom && (
+                        <button
+                          onClick={(e) => { e.preventDefault(); removeQ(q.id); }}
+                          style={{ background: 'none', border: 'none', color: '#EF4444', cursor: 'pointer', padding: '0 4px', fontSize: '16px' }}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Questions */}
+            <div style={{ padding: '24px 20px' }}>
+              {questions.map(q => (
+                <div key={q.id} style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', color: '#374151', marginBottom: '6px' }}>
+                    {q.label}
+                    {q.required && <span style={{ color: '#EF4444', marginLeft: '4px' }}>*</span>}
+                    {q.isCustom && (
+                      <span style={{ fontSize: '10px', backgroundColor: '#FDF2F4', color: '#7C1034', padding: '2px 6px', borderRadius: '4px', marginLeft: '8px' }}>
+                        Custom
+                      </span>
+                    )}
+                  </label>
+                  {renderInput(q)}
+                  {q.helpText && <p style={{ fontSize: '11px', color: '#6B7280', margin: '6px 0 0 0' }}>💡 {q.helpText}</p>}
+                  {errors[q.id] && <p style={{ fontSize: '11px', color: '#EF4444', margin: '6px 0 0 0' }}>⚠️ {errors[q.id]}</p>}
+                </div>
+              ))}
+            </div>
+
+            {/* Navigation */}
+            <div style={{ padding: '16px 20px', backgroundColor: '#F9FAFB', borderTop: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between' }}>
+              <button
+                onClick={() => setCurrentPhase(Math.max(0, currentPhase - 1))}
+                disabled={currentPhase === 0}
+                style={{
+                  padding: '10px 16px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #D1D5DB',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  cursor: currentPhase === 0 ? 'not-allowed' : 'pointer',
+                  opacity: currentPhase === 0 ? 0.5 : 1,
+                  color: '#374151'
+                }}
+              >
+                ← Previous
+              </button>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setShowReport(true)}
+                  style={{
+                    padding: '10px 16px',
+                    backgroundColor: '#FFFFFF',
+                    border: '1px solid #D1D5DB',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    color: '#374151'
+                  }}
+                >
+                  📋 Validate
+                </button>
+                {currentPhase === questionnaire.phases.length - 1 ? (
+                  <button
+                    onClick={handleGenerate}
+                    disabled={isGenerating}
+                    style={{
+                      padding: '10px 24px',
+                      backgroundColor: isGenerating ? '#9CA3AF' : '#7C1034',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: isGenerating ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {isGenerating ? '⏳ Generating...' : '🚀 Generate IM'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleNext}
+                    style={{
+                      padding: '10px 24px',
+                      backgroundColor: '#7C1034',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Continue →
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      {showAddQ && (<div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}><div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', width: '400px', maxWidth: '90vw' }}><h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>➕ Add Custom Question</h3><div style={{ marginBottom: '16px' }}><label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Question Label *</label><input type="text" value={newQ.label} onChange={e => setNewQ({ ...newQ, label: e.target.value })} placeholder="Enter question label" style={{ width: '100%', padding: '10px', border: '1px solid #D1D5DB', borderRadius: '8px', boxSizing: 'border-box' }} /></div><div style={{ marginBottom: '16px' }}><label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Question Type</label><select value={newQ.type} onChange={e => setNewQ({ ...newQ, type: e.target.value })} style={{ width: '100%', padding: '10px', border: '1px solid #D1D5DB', borderRadius: '8px' }}><option value="text">Text (Single Line)</option><option value="textarea">Text Area (Multi Line)</option><option value="number">Number</option><option value="date">Date</option></select></div><div style={{ marginBottom: '16px' }}><label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px' }}>Placeholder Text</label><input type="text" value={newQ.placeholder} onChange={e => setNewQ({ ...newQ, placeholder: e.target.value })} placeholder="Optional hint text" style={{ width: '100%', padding: '10px', border: '1px solid #D1D5DB', borderRadius: '8px', boxSizing: 'border-box' }} /></div><label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', marginBottom: '20px', cursor: 'pointer' }}><input type="checkbox" checked={newQ.required} onChange={e => setNewQ({ ...newQ, required: e.target.checked })} style={{ accentColor: '#7C1034' }} />Required field</label><div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}><button onClick={() => setShowAddQ(false)} style={{ padding: '10px 20px', backgroundColor: 'white', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>Cancel</button><button onClick={addQuestion} style={{ padding: '10px 20px', backgroundColor: '#7C1034', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>Add Question</button></div></div></div>)}
-      {showReport && (<div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}><div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', width: '600px', maxWidth: '90vw', maxHeight: '80vh', overflow: 'auto' }}><h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600' }}>📋 Validation Report</h3>{(() => { const r = fullValidate(); const hasIssues = r.errors.length || r.warnings.length || r.suggestions.length; return (<>{r.errors.length > 0 && (<div style={{ marginBottom: '16px' }}><h4 style={{ fontSize: '14px', color: '#DC2626', margin: '0 0 10px 0' }}>❌ Errors ({r.errors.length})</h4>{r.errors.map((e, i) => (<div key={i} style={{ padding: '10px 14px', backgroundColor: '#FEE2E2', borderRadius: '8px', marginBottom: '6px', fontSize: '13px', borderLeft: '4px solid #DC2626' }}><strong>{e.phase}</strong>: {e.field} - {e.msg}</div>))}</div>)}{r.warnings.length > 0 && (<div style={{ marginBottom: '16px' }}><h4 style={{ fontSize: '14px', color: '#D97706', margin: '0 0 10px 0' }}>⚠️ Warnings ({r.warnings.length})</h4>{r.warnings.map((w, i) => (<div key={i} style={{ padding: '10px 14px', backgroundColor: '#FEF3C7', borderRadius: '8px', marginBottom: '6px', fontSize: '13px', borderLeft: '4px solid #D97706' }}><strong>{w.phase}</strong>: {w.msg}</div>))}</div>)}{r.suggestions.length > 0 && (<div style={{ marginBottom: '16px' }}><h4 style={{ fontSize: '14px', color: '#2563EB', margin: '0 0 10px 0' }}>💡 Suggestions ({r.suggestions.length})</h4>{r.suggestions.map((s, i) => (<div key={i} style={{ padding: '10px 14px', backgroundColor: '#DBEAFE', borderRadius: '8px', marginBottom: '6px', fontSize: '13px', borderLeft: '4px solid #2563EB' }}><strong>{s.phase}</strong>: {s.msg}</div>))}</div>)}{!hasIssues && (<div style={{ padding: '20px', backgroundColor: '#ECFDF5', borderRadius: '8px', textAlign: 'center' }}><span style={{ fontSize: '32px' }}>✅</span><p style={{ margin: '10px 0 0 0', color: '#047857', fontWeight: '600', fontSize: '16px' }}>All validations passed!</p></div>)}</>); })()}<div style={{ marginTop: '20px', textAlign: 'right' }}><button onClick={() => setShowReport(false)} style={{ padding: '10px 24px', backgroundColor: '#7C1034', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>Close</button></div></div></div>)}
-      {showGeneratedContent && generatedContent && (<div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}><div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', width: '900px', maxWidth: '95vw', maxHeight: '90vh', overflow: 'auto' }}><div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}><h3 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>🎉 IM Generated Successfully!</h3><span style={{ fontSize: '12px', color: '#6B7280' }}>Generated: {new Date(generatedContent.generatedAt).toLocaleString()}</span></div><div style={{ backgroundColor: '#1F2937', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}><pre style={{ fontSize: '12px', color: '#E5E7EB', overflow: 'auto', maxHeight: '500px', margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(generatedContent.content, null, 2)}</pre></div><div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}><button onClick={downloadJSON} style={{ padding: '10px 20px', backgroundColor: 'white', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>📥 Download JSON</button><button onClick={() => setShowGeneratedContent(false)} style={{ padding: '10px 24px', backgroundColor: '#7C1034', color: 'white', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>Close</button></div></div></div>)}
+
+      {/* Add Question Modal */}
+      {showAddQ && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '12px', padding: '24px', width: '400px', maxWidth: '90vw' }}>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600', color: '#111827' }}>➕ Add Custom Question</h3>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>Question Label *</label>
+              <input
+                type="text"
+                value={newQ.label}
+                onChange={e => setNewQ({ ...newQ, label: e.target.value })}
+                placeholder="Enter question label"
+                style={{ width: '100%', padding: '10px', border: '1px solid #D1D5DB', borderRadius: '8px', boxSizing: 'border-box', color: '#111827', backgroundColor: '#FFFFFF' }}
+              />
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>Question Type</label>
+              <select
+                value={newQ.type}
+                onChange={e => setNewQ({ ...newQ, type: e.target.value })}
+                style={{ width: '100%', padding: '10px', border: '1px solid #D1D5DB', borderRadius: '8px', color: '#111827', backgroundColor: '#FFFFFF' }}
+              >
+                <option value="text">Text (Single Line)</option>
+                <option value="textarea">Text Area (Multi Line)</option>
+                <option value="number">Number</option>
+                <option value="date">Date</option>
+              </select>
+            </div>
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: '500', marginBottom: '6px', color: '#374151' }}>Placeholder Text</label>
+              <input
+                type="text"
+                value={newQ.placeholder}
+                onChange={e => setNewQ({ ...newQ, placeholder: e.target.value })}
+                placeholder="Optional hint text"
+                style={{ width: '100%', padding: '10px', border: '1px solid #D1D5DB', borderRadius: '8px', boxSizing: 'border-box', color: '#111827', backgroundColor: '#FFFFFF' }}
+              />
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', marginBottom: '20px', cursor: 'pointer', color: '#374151' }}>
+              <input type="checkbox" checked={newQ.required} onChange={e => setNewQ({ ...newQ, required: e.target.checked })} style={{ accentColor: '#7C1034' }} />
+              Required field
+            </label>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowAddQ(false)}
+                style={{ padding: '10px 20px', backgroundColor: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', color: '#374151' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={addQuestion}
+                style={{ padding: '10px 20px', backgroundColor: '#7C1034', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
+              >
+                Add Question
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Validation Report Modal */}
+      {showReport && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '12px', padding: '24px', width: '600px', maxWidth: '90vw', maxHeight: '80vh', overflow: 'auto' }}>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: '18px', fontWeight: '600', color: '#111827' }}>📋 Validation Report</h3>
+            {(() => {
+              const r = fullValidate();
+              const hasIssues = r.errors.length || r.warnings.length || r.suggestions.length;
+              return (
+                <>
+                  {r.errors.length > 0 && (
+                    <div style={{ marginBottom: '16px' }}>
+                      <h4 style={{ fontSize: '14px', color: '#DC2626', margin: '0 0 10px 0' }}>❌ Errors ({r.errors.length})</h4>
+                      {r.errors.map((e, i) => (
+                        <div key={i} style={{ padding: '10px 14px', backgroundColor: '#FEE2E2', borderRadius: '8px', marginBottom: '6px', fontSize: '13px', borderLeft: '4px solid #DC2626', color: '#991B1B' }}>
+                          <strong>{e.phase}</strong>: {e.field} - {e.msg}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {r.warnings.length > 0 && (
+                    <div style={{ marginBottom: '16px' }}>
+                      <h4 style={{ fontSize: '14px', color: '#D97706', margin: '0 0 10px 0' }}>⚠️ Warnings ({r.warnings.length})</h4>
+                      {r.warnings.map((w, i) => (
+                        <div key={i} style={{ padding: '10px 14px', backgroundColor: '#FEF3C7', borderRadius: '8px', marginBottom: '6px', fontSize: '13px', borderLeft: '4px solid #D97706', color: '#92400E' }}>
+                          <strong>{w.phase}</strong>: {w.msg}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {r.suggestions.length > 0 && (
+                    <div style={{ marginBottom: '16px' }}>
+                      <h4 style={{ fontSize: '14px', color: '#2563EB', margin: '0 0 10px 0' }}>💡 Suggestions ({r.suggestions.length})</h4>
+                      {r.suggestions.map((s, i) => (
+                        <div key={i} style={{ padding: '10px 14px', backgroundColor: '#DBEAFE', borderRadius: '8px', marginBottom: '6px', fontSize: '13px', borderLeft: '4px solid #2563EB', color: '#1E40AF' }}>
+                          <strong>{s.phase}</strong>: {s.msg}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {!hasIssues && (
+                    <div style={{ padding: '20px', backgroundColor: '#ECFDF5', borderRadius: '8px', textAlign: 'center' }}>
+                      <span style={{ fontSize: '32px' }}>✅</span>
+                      <p style={{ margin: '10px 0 0 0', color: '#047857', fontWeight: '600', fontSize: '16px' }}>All validations passed!</p>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+            <div style={{ marginTop: '20px', textAlign: 'right' }}>
+              <button
+                onClick={() => setShowReport(false)}
+                style={{ padding: '10px 24px', backgroundColor: '#7C1034', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Generated Content Modal */}
+      {showGeneratedContent && generatedContent && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+          <div style={{ backgroundColor: '#FFFFFF', borderRadius: '12px', padding: '24px', width: '900px', maxWidth: '95vw', maxHeight: '90vh', overflow: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#111827' }}>🎉 IM Generated Successfully!</h3>
+              <span style={{ fontSize: '12px', color: '#6B7280' }}>Generated: {new Date(generatedContent.generatedAt).toLocaleString()}</span>
+            </div>
+            <div style={{ backgroundColor: '#1F2937', borderRadius: '8px', padding: '16px', marginBottom: '20px' }}>
+              <pre style={{ fontSize: '12px', color: '#E5E7EB', overflow: 'auto', maxHeight: '500px', margin: 0, whiteSpace: 'pre-wrap' }}>
+                {JSON.stringify(generatedContent.content, null, 2)}
+              </pre>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={downloadJSON}
+                style={{ padding: '10px 20px', backgroundColor: '#FFFFFF', border: '1px solid #D1D5DB', borderRadius: '8px', fontSize: '13px', cursor: 'pointer', color: '#374151' }}
+              >
+                📥 Download JSON
+              </button>
+              <button
+                onClick={() => setShowGeneratedContent(false)}
+                style={{ padding: '10px 24px', backgroundColor: '#7C1034', color: '#FFFFFF', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
