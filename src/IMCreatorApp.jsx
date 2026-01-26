@@ -147,7 +147,8 @@ const defaultQuestionnaire = {
         { id: 'templateStyle', type: 'select', label: 'Presentation Template', required: true, options: [
           { value: 'modern-tech', label: 'Modern Tech (Blue/Green)' },
           { value: 'conservative', label: 'Conservative Banking (Navy/Gold)' },
-          { value: 'minimalist', label: 'Minimalist (Black/White)' }
+          { value: 'minimalist', label: 'Minimalist (Black/White)' },
+          { value: 'acc-brand', label: 'ACC Brand (Burgundy/Maroon)' }
         ], defaultValue: 'modern-tech', helpText: 'Professional template matching your brand', order: 2 },
         { id: 'includeAppendix', type: 'multiselect', label: 'Include in Appendix', options: [
           { value: 'team-bios', label: 'Detailed Team Bios' },
@@ -163,6 +164,23 @@ const defaultQuestionnaire = {
       ]
     }
   ]
+};
+
+// ACC Brand Colors (from Agentic Underwriting screenshots)
+const THEME = {
+  primary: '#7C1034',        // Burgundy/Maroon
+  primaryDark: '#5A0C26',    // Darker burgundy
+  primaryLight: '#9A1842',   // Lighter burgundy
+  secondary: '#2D3748',      // Dark gray
+  accent: '#48BB78',         // Green (for success states)
+  accentYellow: '#ECC94B',   // Yellow/Gold
+  accentRed: '#E53E3E',      // Red (for errors)
+  accentBlue: '#4299E1',     // Blue
+  background: '#F7FAFC',     // Light gray background
+  surface: '#FFFFFF',        // White
+  text: '#1A202C',           // Dark text
+  textLight: '#718096',      // Gray text
+  border: '#E2E8F0',         // Border color
 };
 
 export default function IMCreatorApp() {
@@ -181,7 +199,6 @@ export default function IMCreatorApp() {
   const [showGeneratedContent, setShowGeneratedContent] = useState(false);
   const [apiStatus, setApiStatus] = useState('checking');
   const [notification, setNotification] = useState(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const phase = questionnaire.phases[currentPhase];
   const questions = phase.questions.filter(q => !q.isHidden).sort((a, b) => a.order - b.order);
@@ -352,14 +369,15 @@ export default function IMCreatorApp() {
     const err = errors[q.id];
     const baseInputStyle = {
       width: '100%',
-      padding: '12px 14px',
-      border: `2px solid ${err ? '#ef4444' : '#e2e8f0'}`,
+      padding: '12px 16px',
+      border: `1px solid ${err ? THEME.accentRed : THEME.border}`,
       borderRadius: '8px',
       fontSize: '14px',
       outline: 'none',
       transition: 'all 0.2s ease',
-      backgroundColor: '#fff',
-      color: '#1e293b'
+      backgroundColor: THEME.surface,
+      color: THEME.text,
+      boxSizing: 'border-box'
     };
 
     switch (q.type) {
@@ -371,8 +389,8 @@ export default function IMCreatorApp() {
             placeholder={q.placeholder}
             rows={4}
             style={{ ...baseInputStyle, resize: 'vertical', minHeight: '100px' }}
-            onFocus={e => e.target.style.borderColor = '#3b82f6'}
-            onBlur={e => e.target.style.borderColor = err ? '#ef4444' : '#e2e8f0'}
+            onFocus={e => e.target.style.borderColor = THEME.primary}
+            onBlur={e => e.target.style.borderColor = err ? THEME.accentRed : THEME.border}
           />
         );
       case 'select':
@@ -393,12 +411,12 @@ export default function IMCreatorApp() {
               <label key={o.value} style={{
                 display: 'flex',
                 alignItems: 'flex-start',
-                gap: '10px',
-                padding: '10px 12px',
-                backgroundColor: (val || []).includes(o.value) ? '#eff6ff' : '#f8fafc',
+                gap: '12px',
+                padding: '12px 16px',
+                backgroundColor: (val || []).includes(o.value) ? `${THEME.primary}10` : THEME.background,
                 borderRadius: '8px',
                 cursor: 'pointer',
-                border: `2px solid ${(val || []).includes(o.value) ? '#3b82f6' : '#e2e8f0'}`,
+                border: `1px solid ${(val || []).includes(o.value) ? THEME.primary : THEME.border}`,
                 transition: 'all 0.2s ease'
               }}>
                 <input
@@ -408,9 +426,9 @@ export default function IMCreatorApp() {
                     const arr = val || [];
                     updateField(q.id, e.target.checked ? [...arr, o.value] : arr.filter(v => v !== o.value));
                   }}
-                  style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: '#3b82f6' }}
+                  style={{ marginTop: '2px', width: '18px', height: '18px', accentColor: THEME.primary }}
                 />
-                <span style={{ fontSize: '14px', color: '#1e293b' }}>{o.label}</span>
+                <span style={{ fontSize: '14px', color: THEME.text }}>{o.label}</span>
               </label>
             ))}
           </div>
@@ -425,8 +443,8 @@ export default function IMCreatorApp() {
             min={q.validation?.min}
             max={q.validation?.max}
             style={baseInputStyle}
-            onFocus={e => e.target.style.borderColor = '#3b82f6'}
-            onBlur={e => e.target.style.borderColor = err ? '#ef4444' : '#e2e8f0'}
+            onFocus={e => e.target.style.borderColor = THEME.primary}
+            onBlur={e => e.target.style.borderColor = err ? THEME.accentRed : THEME.border}
           />
         );
       case 'date':
@@ -436,8 +454,8 @@ export default function IMCreatorApp() {
             value={val}
             onChange={e => updateField(q.id, e.target.value)}
             style={{ ...baseInputStyle, cursor: 'pointer' }}
-            onFocus={e => e.target.style.borderColor = '#3b82f6'}
-            onBlur={e => e.target.style.borderColor = err ? '#ef4444' : '#e2e8f0'}
+            onFocus={e => e.target.style.borderColor = THEME.primary}
+            onBlur={e => e.target.style.borderColor = err ? THEME.accentRed : THEME.border}
           />
         );
       default:
@@ -448,8 +466,8 @@ export default function IMCreatorApp() {
             onChange={e => updateField(q.id, e.target.value)}
             placeholder={q.placeholder}
             style={baseInputStyle}
-            onFocus={e => e.target.style.borderColor = '#3b82f6'}
-            onBlur={e => e.target.style.borderColor = err ? '#ef4444' : '#e2e8f0'}
+            onFocus={e => e.target.style.borderColor = THEME.primary}
+            onBlur={e => e.target.style.borderColor = err ? THEME.accentRed : THEME.border}
           />
         );
     }
@@ -459,12 +477,16 @@ export default function IMCreatorApp() {
 
   return (
     <div style={{
-      minHeight: '100vh',
-      width: '100%',
-      backgroundColor: '#f1f5f9',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: THEME.background,
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      overflow: 'hidden'
     }}>
       {/* Notification Toast */}
       {notification && (
@@ -473,155 +495,147 @@ export default function IMCreatorApp() {
           top: '20px',
           right: '20px',
           padding: '16px 24px',
-          borderRadius: '12px',
-          backgroundColor: notification.type === 'success' ? '#10b981' : notification.type === 'error' ? '#ef4444' : '#3b82f6',
+          borderRadius: '8px',
+          backgroundColor: notification.type === 'success' ? THEME.accent : notification.type === 'error' ? THEME.accentRed : THEME.primary,
           color: 'white',
           fontSize: '14px',
           fontWeight: '500',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
           zIndex: 9999,
           display: 'flex',
           alignItems: 'center',
-          gap: '10px',
-          animation: 'slideIn 0.3s ease'
+          gap: '10px'
         }}>
           <span>{notification.type === 'success' ? '✓' : notification.type === 'error' ? '✕' : 'ℹ'}</span>
           {notification.message}
         </div>
       )}
 
-      {/* Top Header Bar */}
+      {/* Top Header Bar - ACC Style */}
       <header style={{
-        backgroundColor: '#1e293b',
-        color: 'white',
+        backgroundColor: THEME.surface,
+        borderBottom: `1px solid ${THEME.border}`,
         padding: '0 24px',
         height: '64px',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100
+        flexShrink: 0
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          {/* Logo */}
           <div style={{
             width: '40px',
             height: '40px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
+            borderRadius: '8px',
+            background: `linear-gradient(135deg, ${THEME.primary} 0%, ${THEME.primaryDark} 100%)`,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '20px'
+            justifyContent: 'center'
           }}>
-            📊
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
           </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '700', letterSpacing: '-0.5px' }}>
+            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: THEME.text }}>
               IM Creator Pro
             </h1>
-            <span style={{ fontSize: '12px', opacity: 0.7 }}>
+            <span style={{ fontSize: '12px', color: THEME.textLight }}>
               Professional Information Memorandum Generator
             </span>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          {/* Progress Indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          {/* Progress */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ fontSize: '13px', opacity: 0.8 }}>{progress}% Complete</span>
+            <span style={{ fontSize: '13px', color: THEME.textLight, fontWeight: '500' }}>{progress}% Complete</span>
             <div style={{
-              width: '120px',
-              height: '8px',
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              borderRadius: '4px',
+              width: '150px',
+              height: '6px',
+              backgroundColor: THEME.border,
+              borderRadius: '3px',
               overflow: 'hidden'
             }}>
               <div style={{
                 width: `${progress}%`,
                 height: '100%',
-                background: 'linear-gradient(90deg, #10b981, #34d399)',
-                borderRadius: '4px',
+                backgroundColor: THEME.primary,
+                borderRadius: '3px',
                 transition: 'width 0.3s ease'
               }} />
             </div>
           </div>
 
-          {/* API Status */}
+          {/* API Status Badge */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            padding: '6px 12px',
-            backgroundColor: apiStatus === 'connected' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+            gap: '8px',
+            padding: '6px 14px',
+            backgroundColor: apiStatus === 'connected' ? `${THEME.accent}15` : `${THEME.accentRed}15`,
             borderRadius: '20px',
-            fontSize: '12px'
+            border: `1px solid ${apiStatus === 'connected' ? THEME.accent : THEME.accentRed}`
           }}>
             <div style={{
               width: '8px',
               height: '8px',
               borderRadius: '50%',
-              backgroundColor: apiStatus === 'connected' ? '#10b981' : '#ef4444'
+              backgroundColor: apiStatus === 'connected' ? THEME.accent : THEME.accentRed
             }} />
-            {apiStatus === 'connected' ? 'API Connected' : 'API Disconnected'}
+            <span style={{ fontSize: '13px', fontWeight: '500', color: apiStatus === 'connected' ? THEME.accent : THEME.accentRed }}>
+              {apiStatus === 'connected' ? 'API Connected' : 'API Disconnected'}
+            </span>
           </div>
 
-          {/* Config Button */}
+          {/* Configure Button */}
           <button
             onClick={() => setShowConfig(!showConfig)}
             style={{
               padding: '8px 16px',
-              backgroundColor: showConfig ? '#3b82f6' : 'rgba(255,255,255,0.1)',
-              color: 'white',
-              border: 'none',
+              backgroundColor: showConfig ? THEME.primary : THEME.background,
+              color: showConfig ? 'white' : THEME.text,
+              border: `1px solid ${showConfig ? THEME.primary : THEME.border}`,
               borderRadius: '8px',
               cursor: 'pointer',
               fontSize: '13px',
               fontWeight: '500',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px'
+              gap: '8px',
+              transition: 'all 0.2s ease'
             }}
           >
-            ⚙️ {showConfig ? 'Hide Config' : 'Configure'}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            Configure
           </button>
         </div>
       </header>
 
-      {/* Main Content Area */}
+      {/* Main Content Area - FULL WIDTH */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* Left Sidebar - Phase Navigation */}
+        {/* Left Sidebar */}
         <aside style={{
-          width: sidebarCollapsed ? '70px' : '280px',
-          backgroundColor: '#fff',
-          borderRight: '1px solid #e2e8f0',
+          width: '280px',
+          backgroundColor: THEME.surface,
+          borderRight: `1px solid ${THEME.border}`,
           display: 'flex',
           flexDirection: 'column',
-          transition: 'width 0.3s ease',
-          overflow: 'hidden'
+          flexShrink: 0
         }}>
           <div style={{
-            padding: '16px',
-            borderBottom: '1px solid #e2e8f0',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center'
+            padding: '20px',
+            borderBottom: `1px solid ${THEME.border}`
           }}>
-            {!sidebarCollapsed && <span style={{ fontWeight: '600', color: '#1e293b' }}>Sections</span>}
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              style={{
-                padding: '8px',
-                backgroundColor: '#f1f5f9',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-            >
-              {sidebarCollapsed ? '→' : '←'}
-            </button>
+            <span style={{ fontWeight: '600', color: THEME.text, fontSize: '14px' }}>Sections</span>
           </div>
 
           <nav style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
@@ -635,344 +649,354 @@ export default function IMCreatorApp() {
                   onClick={() => setCurrentPhase(idx)}
                   style={{
                     width: '100%',
-                    padding: sidebarCollapsed ? '12px' : '14px 16px',
-                    marginBottom: '6px',
-                    backgroundColor: isActive ? '#eff6ff' : 'transparent',
-                    border: isActive ? '2px solid #3b82f6' : '2px solid transparent',
-                    borderRadius: '10px',
+                    padding: '14px 16px',
+                    marginBottom: '4px',
+                    backgroundColor: isActive ? `${THEME.primary}10` : 'transparent',
+                    border: 'none',
+                    borderRadius: '8px',
+                    borderLeft: isActive ? `3px solid ${THEME.primary}` : '3px solid transparent',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
                     textAlign: 'left',
-                    transition: 'all 0.2s ease',
-                    justifyContent: sidebarCollapsed ? 'center' : 'flex-start'
+                    transition: 'all 0.15s ease'
                   }}
-                  onMouseEnter={e => { if (!isActive) e.target.style.backgroundColor = '#f8fafc'; }}
-                  onMouseLeave={e => { if (!isActive) e.target.style.backgroundColor = 'transparent'; }}
                 >
                   <span style={{
-                    fontSize: '20px',
-                    filter: isCompleted ? 'none' : 'grayscale(50%)'
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    backgroundColor: isCompleted ? THEME.accent : isActive ? THEME.primary : THEME.background,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '14px',
+                    color: isCompleted || isActive ? 'white' : THEME.textLight,
+                    flexShrink: 0
                   }}>
-                    {isCompleted ? '✅' : p.icon}
+                    {isCompleted ? '✓' : p.icon}
                   </span>
-                  {!sidebarCollapsed && (
-                    <div style={{ flex: 1, overflow: 'hidden' }}>
-                      <div style={{
-                        fontSize: '14px',
-                        fontWeight: isActive ? '600' : '500',
-                        color: isActive ? '#1e40af' : '#475569',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}>
-                        {p.name}
-                      </div>
-                      <div style={{
-                        fontSize: '11px',
-                        color: '#94a3b8',
-                        marginTop: '2px'
-                      }}>
-                        {p.description}
-                      </div>
+                  <div style={{ flex: 1, overflow: 'hidden' }}>
+                    <div style={{
+                      fontSize: '14px',
+                      fontWeight: isActive ? '600' : '500',
+                      color: isActive ? THEME.primary : THEME.text,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }}>
+                      {p.name}
                     </div>
-                  )}
+                    <div style={{
+                      fontSize: '12px',
+                      color: THEME.textLight,
+                      marginTop: '2px'
+                    }}>
+                      {p.description}
+                    </div>
+                  </div>
                 </button>
               );
             })}
           </nav>
 
-          {/* Sidebar Footer Actions */}
-          {!sidebarCollapsed && (
-            <div style={{ padding: '16px', borderTop: '1px solid #e2e8f0' }}>
-              <button
-                onClick={handleSaveDraft}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  backgroundColor: '#f1f5f9',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  color: '#475569',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px'
-                }}
-              >
-                💾 Save Draft
-              </button>
-            </div>
-          )}
+          {/* Save Draft Button */}
+          <div style={{ padding: '16px', borderTop: `1px solid ${THEME.border}` }}>
+            <button
+              onClick={handleSaveDraft}
+              style={{
+                width: '100%',
+                padding: '12px',
+                backgroundColor: THEME.background,
+                border: `1px solid ${THEME.border}`,
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontWeight: '500',
+                color: THEME.text,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+              Save Draft
+            </button>
+          </div>
         </aside>
 
-        {/* Main Form Area */}
-        <main style={{ flex: 1, overflow: 'auto', padding: '32px', backgroundColor: '#f8fafc' }}>
-          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-            {/* Phase Header */}
-            <div style={{ marginBottom: '32px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
-                <span style={{ fontSize: '36px' }}>{phase.icon}</span>
-                <div>
-                  <h2 style={{ margin: 0, fontSize: '28px', fontWeight: '700', color: '#1e293b' }}>
-                    {phase.name}
-                  </h2>
-                  <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '15px' }}>
-                    {phase.description}
-                  </p>
-                </div>
+        {/* Main Form Area - FILLS REMAINING SPACE */}
+        <main style={{ 
+          flex: 1, 
+          overflow: 'auto', 
+          padding: '32px 48px',
+          backgroundColor: THEME.background
+        }}>
+          {/* Phase Header */}
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+              <span style={{ 
+                fontSize: '32px',
+                width: '56px',
+                height: '56px',
+                backgroundColor: `${THEME.primary}15`,
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>{phase.icon}</span>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '28px', fontWeight: '600', color: THEME.text }}>
+                  {phase.name}
+                </h2>
+                <p style={{ margin: '4px 0 0', color: THEME.textLight, fontSize: '15px' }}>
+                  {phase.description}
+                </p>
               </div>
-
-              {/* Config Mode Toggle for current phase */}
-              {showConfig && (
-                <div style={{
-                  marginTop: '16px',
-                  padding: '16px',
-                  backgroundColor: '#fef3c7',
-                  borderRadius: '10px',
-                  border: '1px solid #fcd34d',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between'
-                }}>
-                  <span style={{ color: '#92400e', fontWeight: '500' }}>
-                    ⚠️ Configuration Mode Active - You can hide/show or add questions
-                  </span>
-                  <button
-                    onClick={() => setShowAddQ(true)}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#f59e0b',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontWeight: '500',
-                      fontSize: '13px'
-                    }}
-                  >
-                    + Add Question
-                  </button>
-                </div>
-              )}
             </div>
 
-            {/* Questions */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              {questions.map(q => (
-                <div
-                  key={q.id}
+            {/* Config Mode Banner */}
+            {showConfig && (
+              <div style={{
+                marginTop: '20px',
+                padding: '16px 20px',
+                backgroundColor: `${THEME.accentYellow}20`,
+                borderRadius: '8px',
+                border: `1px solid ${THEME.accentYellow}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <span style={{ color: '#744210', fontWeight: '500', fontSize: '14px' }}>
+                  ⚙️ Configuration Mode Active - You can hide/show or add questions
+                </span>
+                <button
+                  onClick={() => setShowAddQ(true)}
                   style={{
-                    backgroundColor: '#fff',
-                    borderRadius: '12px',
-                    padding: '24px',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                    border: '1px solid #e2e8f0'
+                    padding: '8px 16px',
+                    backgroundColor: THEME.primary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    fontSize: '13px'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                    <div>
-                      <label style={{
-                        display: 'block',
-                        fontSize: '15px',
-                        fontWeight: '600',
-                        color: '#1e293b',
-                        marginBottom: '4px'
-                      }}>
-                        {q.label}
-                        {q.required && <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>}
-                      </label>
-                      {q.helpText && (
-                        <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-                          {q.helpText}
-                        </p>
-                      )}
-                    </div>
-                    
-                    {showConfig && (
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          onClick={() => toggleHide(q.id)}
-                          style={{
-                            padding: '4px 10px',
-                            backgroundColor: '#f1f5f9',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px'
-                          }}
-                        >
-                          👁️ Hide
-                        </button>
-                        {q.isCustom && (
-                          <button
-                            onClick={() => removeQ(q.id)}
-                            style={{
-                              padding: '4px 10px',
-                              backgroundColor: '#fef2f2',
-                              border: '1px solid #fecaca',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '12px',
-                              color: '#dc2626'
-                            }}
-                          >
-                            🗑️
-                          </button>
-                        )}
-                      </div>
+                  + Add Question
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Questions */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {questions.map(q => (
+              <div
+                key={q.id}
+                style={{
+                  backgroundColor: THEME.surface,
+                  borderRadius: '12px',
+                  padding: '24px',
+                  border: `1px solid ${THEME.border}`
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: THEME.text,
+                      marginBottom: '4px'
+                    }}>
+                      {q.label}
+                      {q.required && <span style={{ color: THEME.accentRed, marginLeft: '4px' }}>*</span>}
+                    </label>
+                    {q.helpText && (
+                      <p style={{ margin: 0, fontSize: '13px', color: THEME.textLight }}>
+                        {q.helpText}
+                      </p>
                     )}
                   </div>
                   
-                  {renderField(q)}
-                  
-                  {errors[q.id] && (
-                    <p style={{ margin: '8px 0 0', fontSize: '13px', color: '#ef4444', fontWeight: '500' }}>
-                      ⚠️ {errors[q.id]}
-                    </p>
+                  {showConfig && (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => toggleHide(q.id)}
+                        style={{
+                          padding: '6px 12px',
+                          backgroundColor: THEME.background,
+                          border: `1px solid ${THEME.border}`,
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '12px',
+                          color: THEME.textLight
+                        }}
+                      >
+                        Hide
+                      </button>
+                      {q.isCustom && (
+                        <button
+                          onClick={() => removeQ(q.id)}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: `${THEME.accentRed}10`,
+                            border: `1px solid ${THEME.accentRed}30`,
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            color: THEME.accentRed
+                          }}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
-              ))}
-            </div>
+                
+                {renderField(q)}
+                
+                {errors[q.id] && (
+                  <p style={{ margin: '8px 0 0', fontSize: '13px', color: THEME.accentRed, fontWeight: '500' }}>
+                    ⚠️ {errors[q.id]}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
 
-            {/* Navigation Buttons */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: '40px',
-              paddingTop: '24px',
-              borderTop: '1px solid #e2e8f0'
-            }}>
-              <button
-                onClick={() => setCurrentPhase(Math.max(0, currentPhase - 1))}
-                disabled={currentPhase === 0}
-                style={{
-                  padding: '14px 28px',
-                  backgroundColor: currentPhase === 0 ? '#f1f5f9' : '#fff',
-                  color: currentPhase === 0 ? '#94a3b8' : '#475569',
-                  border: '2px solid #e2e8f0',
-                  borderRadius: '10px',
-                  cursor: currentPhase === 0 ? 'not-allowed' : 'pointer',
-                  fontWeight: '600',
-                  fontSize: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                ← Previous
-              </button>
+          {/* Navigation Buttons */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: '40px',
+            paddingTop: '24px',
+            borderTop: `1px solid ${THEME.border}`
+          }}>
+            <button
+              onClick={() => setCurrentPhase(Math.max(0, currentPhase - 1))}
+              disabled={currentPhase === 0}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: THEME.surface,
+                color: currentPhase === 0 ? THEME.textLight : THEME.text,
+                border: `1px solid ${THEME.border}`,
+                borderRadius: '8px',
+                cursor: currentPhase === 0 ? 'not-allowed' : 'pointer',
+                fontWeight: '500',
+                fontSize: '14px',
+                opacity: currentPhase === 0 ? 0.5 : 1
+              }}
+            >
+              ← Previous
+            </button>
 
-              <div style={{ display: 'flex', gap: '12px' }}>
-                {currentPhase === questionnaire.phases.length - 1 ? (
-                  <>
-                    <button
-                      onClick={handleGeneratePPTX}
-                      disabled={isGeneratingPPTX}
-                      style={{
-                        padding: '14px 32px',
-                        background: isGeneratingPPTX ? '#94a3b8' : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '10px',
-                        cursor: isGeneratingPPTX ? 'not-allowed' : 'pointer',
-                        fontWeight: '600',
-                        fontSize: '15px',
-                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px'
-                      }}
-                    >
-                      {isGeneratingPPTX ? (
-                        <>
-                          <span style={{
-                            width: '18px',
-                            height: '18px',
-                            border: '2px solid rgba(255,255,255,0.3)',
-                            borderTopColor: 'white',
-                            borderRadius: '50%',
-                            animation: 'spin 1s linear infinite'
-                          }} />
-                          Generating...
-                        </>
-                      ) : (
-                        <>📊 Download PPTX</>
-                      )}
-                    </button>
-                    <button
-                      onClick={handleGenerateJSON}
-                      disabled={isGenerating}
-                      style={{
-                        padding: '14px 32px',
-                        background: isGenerating ? '#94a3b8' : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '10px',
-                        cursor: isGenerating ? 'not-allowed' : 'pointer',
-                        fontWeight: '600',
-                        fontSize: '15px',
-                        boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px'
-                      }}
-                    >
-                      {isGenerating ? 'Generating...' : '🤖 Generate JSON'}
-                    </button>
-                  </>
-                ) : (
+            <div style={{ display: 'flex', gap: '12px' }}>
+              {currentPhase === questionnaire.phases.length - 1 ? (
+                <>
                   <button
-                    onClick={handleNext}
+                    onClick={handleGeneratePPTX}
+                    disabled={isGeneratingPPTX}
                     style={{
-                      padding: '14px 32px',
-                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                      padding: '12px 28px',
+                      backgroundColor: isGeneratingPPTX ? THEME.textLight : THEME.primary,
                       color: 'white',
                       border: 'none',
-                      borderRadius: '10px',
-                      cursor: 'pointer',
+                      borderRadius: '8px',
+                      cursor: isGeneratingPPTX ? 'not-allowed' : 'pointer',
                       fontWeight: '600',
-                      fontSize: '15px',
-                      boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                      fontSize: '14px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px'
                     }}
                   >
-                    Next →
+                    {isGeneratingPPTX ? (
+                      <>
+                        <span style={{
+                          width: '16px',
+                          height: '16px',
+                          border: '2px solid rgba(255,255,255,0.3)',
+                          borderTopColor: 'white',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite'
+                        }} />
+                        Generating...
+                      </>
+                    ) : (
+                      <>📊 Download PPTX</>
+                    )}
                   </button>
-                )}
-              </div>
+                  <button
+                    onClick={handleGenerateJSON}
+                    disabled={isGenerating}
+                    style={{
+                      padding: '12px 28px',
+                      backgroundColor: isGenerating ? THEME.textLight : THEME.secondary,
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: isGenerating ? 'not-allowed' : 'pointer',
+                      fontWeight: '600',
+                      fontSize: '14px'
+                    }}
+                  >
+                    {isGenerating ? 'Generating...' : '🤖 Generate JSON'}
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={handleNext}
+                  style={{
+                    padding: '12px 28px',
+                    backgroundColor: THEME.primary,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    fontSize: '14px'
+                  }}
+                >
+                  Next →
+                </button>
+              )}
             </div>
           </div>
         </main>
 
-        {/* Right Panel - Validation Report (shown when report has items) */}
+        {/* Right Panel - Validation Report */}
         {showReport && (
           <aside style={{
             width: '350px',
-            backgroundColor: '#fff',
-            borderLeft: '1px solid #e2e8f0',
+            backgroundColor: THEME.surface,
+            borderLeft: `1px solid ${THEME.border}`,
             padding: '24px',
-            overflowY: 'auto'
+            overflowY: 'auto',
+            flexShrink: 0
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#1e293b' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: THEME.text }}>
                 Validation Report
               </h3>
               <button
                 onClick={() => setShowReport(false)}
                 style={{
                   padding: '6px 10px',
-                  backgroundColor: '#f1f5f9',
+                  backgroundColor: THEME.background,
                   border: 'none',
                   borderRadius: '6px',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  color: THEME.textLight
                 }}
               >
                 ✕
@@ -981,19 +1005,19 @@ export default function IMCreatorApp() {
 
             {report.errors.length > 0 && (
               <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '600', color: '#dc2626' }}>
-                  ❌ Errors ({report.errors.length})
+                <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: THEME.accentRed }}>
+                  Errors ({report.errors.length})
                 </h4>
                 {report.errors.map((e, i) => (
                   <div key={i} style={{
                     padding: '12px',
-                    backgroundColor: '#fef2f2',
+                    backgroundColor: `${THEME.accentRed}10`,
                     borderRadius: '8px',
                     marginBottom: '8px',
-                    borderLeft: '4px solid #dc2626'
+                    borderLeft: `3px solid ${THEME.accentRed}`
                   }}>
-                    <div style={{ fontSize: '12px', color: '#dc2626', fontWeight: '600' }}>{e.phase}</div>
-                    <div style={{ fontSize: '13px', color: '#991b1b' }}>{e.field}: {e.msg}</div>
+                    <div style={{ fontSize: '11px', color: THEME.accentRed, fontWeight: '600' }}>{e.phase}</div>
+                    <div style={{ fontSize: '13px', color: THEME.text }}>{e.field}: {e.msg}</div>
                   </div>
                 ))}
               </div>
@@ -1001,19 +1025,19 @@ export default function IMCreatorApp() {
 
             {report.warnings.length > 0 && (
               <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '600', color: '#d97706' }}>
-                  ⚠️ Warnings ({report.warnings.length})
+                <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: THEME.accentYellow }}>
+                  Warnings ({report.warnings.length})
                 </h4>
                 {report.warnings.map((w, i) => (
                   <div key={i} style={{
                     padding: '12px',
-                    backgroundColor: '#fffbeb',
+                    backgroundColor: `${THEME.accentYellow}15`,
                     borderRadius: '8px',
                     marginBottom: '8px',
-                    borderLeft: '4px solid #d97706'
+                    borderLeft: `3px solid ${THEME.accentYellow}`
                   }}>
-                    <div style={{ fontSize: '12px', color: '#d97706', fontWeight: '600' }}>{w.phase}</div>
-                    <div style={{ fontSize: '13px', color: '#92400e' }}>{w.msg}</div>
+                    <div style={{ fontSize: '11px', color: '#744210', fontWeight: '600' }}>{w.phase}</div>
+                    <div style={{ fontSize: '13px', color: THEME.text }}>{w.msg}</div>
                   </div>
                 ))}
               </div>
@@ -1021,19 +1045,19 @@ export default function IMCreatorApp() {
 
             {report.suggestions.length > 0 && (
               <div>
-                <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '600', color: '#2563eb' }}>
-                  💡 Suggestions ({report.suggestions.length})
+                <h4 style={{ margin: '0 0 12px', fontSize: '13px', fontWeight: '600', color: THEME.accentBlue }}>
+                  Suggestions ({report.suggestions.length})
                 </h4>
                 {report.suggestions.map((s, i) => (
                   <div key={i} style={{
                     padding: '12px',
-                    backgroundColor: '#eff6ff',
+                    backgroundColor: `${THEME.accentBlue}10`,
                     borderRadius: '8px',
                     marginBottom: '8px',
-                    borderLeft: '4px solid #2563eb'
+                    borderLeft: `3px solid ${THEME.accentBlue}`
                   }}>
-                    <div style={{ fontSize: '12px', color: '#2563eb', fontWeight: '600' }}>{s.phase}</div>
-                    <div style={{ fontSize: '13px', color: '#1e40af' }}>{s.msg}</div>
+                    <div style={{ fontSize: '11px', color: THEME.accentBlue, fontWeight: '600' }}>{s.phase}</div>
+                    <div style={{ fontSize: '13px', color: THEME.text }}>{s.msg}</div>
                   </div>
                 ))}
               </div>
@@ -1054,20 +1078,20 @@ export default function IMCreatorApp() {
           zIndex: 1000
         }}>
           <div style={{
-            backgroundColor: '#fff',
+            backgroundColor: THEME.surface,
             borderRadius: '16px',
             padding: '32px',
             width: '90%',
-            maxWidth: '500px',
+            maxWidth: '480px',
             boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
           }}>
-            <h3 style={{ margin: '0 0 24px', fontSize: '20px', fontWeight: '600', color: '#1e293b' }}>
+            <h3 style={{ margin: '0 0 24px', fontSize: '18px', fontWeight: '600', color: THEME.text }}>
               Add Custom Question
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#475569' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: THEME.text, fontSize: '14px' }}>
                   Question Label
                 </label>
                 <input
@@ -1077,16 +1101,17 @@ export default function IMCreatorApp() {
                   placeholder="Enter question label"
                   style={{
                     width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e2e8f0',
+                    padding: '12px 16px',
+                    border: `1px solid ${THEME.border}`,
                     borderRadius: '8px',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
                   }}
                 />
               </div>
               
               <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#475569' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: THEME.text, fontSize: '14px' }}>
                   Field Type
                 </label>
                 <select
@@ -1094,10 +1119,11 @@ export default function IMCreatorApp() {
                   onChange={e => setNewQ({ ...newQ, type: e.target.value })}
                   style={{
                     width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e2e8f0',
+                    padding: '12px 16px',
+                    border: `1px solid ${THEME.border}`,
                     borderRadius: '8px',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
                   }}
                 >
                   <option value="text">Text</option>
@@ -1107,33 +1133,14 @@ export default function IMCreatorApp() {
                 </select>
               </div>
               
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#475569' }}>
-                  Placeholder
-                </label>
-                <input
-                  type="text"
-                  value={newQ.placeholder}
-                  onChange={e => setNewQ({ ...newQ, placeholder: e.target.value })}
-                  placeholder="Optional placeholder text"
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid #e2e8f0',
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
-              
               <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={newQ.required}
                   onChange={e => setNewQ({ ...newQ, required: e.target.checked })}
-                  style={{ width: '18px', height: '18px', accentColor: '#3b82f6' }}
+                  style={{ width: '18px', height: '18px', accentColor: THEME.primary }}
                 />
-                <span style={{ fontWeight: '500', color: '#475569' }}>Required field</span>
+                <span style={{ fontWeight: '500', color: THEME.text, fontSize: '14px' }}>Required field</span>
               </label>
             </div>
             
@@ -1141,12 +1148,13 @@ export default function IMCreatorApp() {
               <button
                 onClick={() => setShowAddQ(false)}
                 style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#f1f5f9',
-                  border: 'none',
+                  padding: '10px 20px',
+                  backgroundColor: THEME.background,
+                  border: `1px solid ${THEME.border}`,
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontWeight: '500'
+                  fontWeight: '500',
+                  fontSize: '14px'
                 }}
               >
                 Cancel
@@ -1154,13 +1162,14 @@ export default function IMCreatorApp() {
               <button
                 onClick={addQuestion}
                 style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#3b82f6',
+                  padding: '10px 20px',
+                  backgroundColor: THEME.primary,
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontWeight: '500'
+                  fontWeight: '500',
+                  fontSize: '14px'
                 }}
               >
                 Add Question
@@ -1182,7 +1191,7 @@ export default function IMCreatorApp() {
           zIndex: 1000
         }}>
           <div style={{
-            backgroundColor: '#fff',
+            backgroundColor: THEME.surface,
             borderRadius: '16px',
             padding: '32px',
             width: '90%',
@@ -1192,14 +1201,14 @@ export default function IMCreatorApp() {
             boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#1e293b' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: THEME.text }}>
                 Generated IM Content
               </h3>
               <button
                 onClick={() => setShowGeneratedContent(false)}
                 style={{
                   padding: '8px 12px',
-                  backgroundColor: '#f1f5f9',
+                  backgroundColor: THEME.background,
                   border: 'none',
                   borderRadius: '6px',
                   cursor: 'pointer'
@@ -1210,12 +1219,13 @@ export default function IMCreatorApp() {
             </div>
             
             <pre style={{
-              backgroundColor: '#f8fafc',
+              backgroundColor: THEME.background,
               padding: '20px',
               borderRadius: '8px',
               overflow: 'auto',
-              fontSize: '13px',
-              lineHeight: '1.5'
+              fontSize: '12px',
+              lineHeight: '1.5',
+              border: `1px solid ${THEME.border}`
             }}>
               {JSON.stringify(generatedContent.content, null, 2)}
             </pre>
@@ -1224,8 +1234,8 @@ export default function IMCreatorApp() {
               <button
                 onClick={downloadJSON}
                 style={{
-                  padding: '12px 24px',
-                  backgroundColor: '#3b82f6',
+                  padding: '10px 20px',
+                  backgroundColor: THEME.primary,
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
@@ -1240,21 +1250,20 @@ export default function IMCreatorApp() {
         </div>
       )}
 
-      {/* CSS Animation Keyframes */}
+      {/* CSS */}
       <style>{`
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
-        @keyframes slideIn {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
         * {
           box-sizing: border-box;
         }
-        body {
+        html, body, #root {
           margin: 0;
           padding: 0;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
         }
       `}</style>
     </div>
