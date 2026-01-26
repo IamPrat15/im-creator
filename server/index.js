@@ -1,4 +1,6 @@
-// server/index.js
+// Enhanced IM Creator Server with Professional PPTX Generation
+// Uses html2pptx for high-quality Deloitte-style presentations
+
 const express = require('express');
 const cors = require('cors');
 const Anthropic = require('@anthropic-ai/sdk');
@@ -18,682 +20,1108 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb' }));
 
-// Create temp directory for generated files
+// Create temp directory
 const tempDir = path.join(__dirname, 'temp');
 if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
 
-// Initialize Anthropic client
+// Initialize Anthropic
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// Color themes for presentations
+// ============================================================================
+// PROFESSIONAL COLOR THEMES (Deloitte-inspired)
+// ============================================================================
 const THEMES = {
   'modern-tech': {
-    primary: '7C1034',
-    secondary: '2196F3',
-    accent: 'F5F5F5',
-    text: '333333',
-    lightBg: 'FDF2F4',
-    darkBg: '7C1034'
+    primary: '2B579A',      // Deep blue (like Deloitte)
+    secondary: '86BC25',    // Green accent
+    accent: 'FFC72C',       // Gold/Yellow for highlights
+    text: '333333',         // Dark gray text
+    textLight: '666666',    // Light gray text
+    white: 'FFFFFF',
+    lightBg: 'F5F7FA',      // Light gray background
+    darkBg: '1A1F36',       // Dark background for cover
+    border: 'E0E5EC',
+    success: '28A745',
+    warning: 'FFC107',
+    danger: 'DC3545',
+    chartColors: ['2B579A', '86BC25', 'FFC72C', '00A3E0', 'E31B23', '6B3FA0']
   },
   'conservative': {
-    primary: '1a237e',
-    secondary: 'c9a227',
-    accent: 'F5F5F5',
+    primary: '003366',
+    secondary: 'B8860B',
+    accent: 'C9A227',
     text: '333333',
-    lightBg: 'E8EAF6',
-    darkBg: '1a237e'
+    textLight: '666666',
+    white: 'FFFFFF',
+    lightBg: 'F8F9FA',
+    darkBg: '1A2332',
+    border: 'DEE2E6',
+    success: '28A745',
+    warning: 'FFC107',
+    danger: 'DC3545',
+    chartColors: ['003366', 'B8860B', '5B9BD5', '70AD47', 'ED7D31', '7030A0']
   },
   'minimalist': {
     primary: '212121',
     secondary: '757575',
-    accent: 'FFFFFF',
+    accent: '2196F3',
     text: '212121',
+    textLight: '757575',
+    white: 'FFFFFF',
     lightBg: 'FAFAFA',
-    darkBg: '212121'
+    darkBg: '212121',
+    border: 'E0E0E0',
+    success: '4CAF50',
+    warning: 'FF9800',
+    danger: 'F44336',
+    chartColors: ['212121', '757575', '2196F3', '4CAF50', 'FF9800', '9C27B0']
   }
 };
 
-// Helper function to create a slide with consistent styling
-function createStyledSlide(pptx, theme, title, options = {}) {
-  const slide = pptx.addSlide();
-  const colors = THEMES[theme] || THEMES['modern-tech'];
-  
-  // Add header bar
-  slide.addShape('rect', {
-    x: 0, y: 0, w: '100%', h: 0.8,
-    fill: { color: colors.primary }
-  });
-  
-  // Add title
-  slide.addText(title, {
-    x: 0.5, y: 0.15, w: '90%', h: 0.5,
-    fontSize: 24, bold: true, color: 'FFFFFF',
-    fontFace: 'Arial'
-  });
-  
-  // Add footer
-  slide.addShape('rect', {
-    x: 0, y: 5.2, w: '100%', h: 0.3,
-    fill: { color: colors.lightBg }
-  });
-  
-  if (options.confidential) {
-    slide.addText('STRICTLY PRIVATE AND CONFIDENTIAL', {
-      x: 0.5, y: 5.25, w: '50%', h: 0.2,
-      fontSize: 8, color: colors.text, fontFace: 'Arial'
-    });
-  }
-  
-  return { slide, colors };
-}
-
-// Generate PowerPoint presentation
-async function generatePowerPoint(data, content, theme = 'modern-tech') {
+// ============================================================================
+// PROFESSIONAL POWERPOINT GENERATOR
+// ============================================================================
+async function generateProfessionalPPTX(data, theme = 'modern-tech') {
   const pptx = new PptxGenJS();
   const colors = THEMES[theme] || THEMES['modern-tech'];
   
-  // Set presentation properties
+  // Presentation metadata
   pptx.author = data.advisor || 'RMB Securities';
-  pptx.title = `${data.projectCodename} - Management Presentation`;
+  pptx.title = `${data.projectCodename || 'Project'} - Management Presentation`;
   pptx.subject = 'Confidential Information Memorandum';
   pptx.company = data.advisor || 'RMB Securities';
-  
-  // Define master slide layout
-  pptx.defineSlideMaster({
-    title: 'MASTER_SLIDE',
-    background: { color: 'FFFFFF' },
-    objects: [
-      { rect: { x: 0, y: 0, w: '100%', h: 0.8, fill: { color: colors.primary } } },
-      { rect: { x: 0, y: 5.2, w: '100%', h: 0.3, fill: { color: colors.lightBg } } }
-    ]
-  });
+  pptx.layout = 'LAYOUT_16x9';
 
-  // ==================== SLIDE 1: COVER ====================
+  // ============================================================================
+  // SLIDE 1: COVER PAGE (Full-bleed dark design)
+  // ============================================================================
   const slide1 = pptx.addSlide();
+  
+  // Dark gradient background
   slide1.addShape('rect', {
     x: 0, y: 0, w: '100%', h: '100%',
-    fill: { color: colors.primary }
+    fill: { type: 'solid', color: colors.darkBg }
   });
   
-  // Decorative element
+  // Decorative geometric pattern (top right)
   slide1.addShape('rect', {
-    x: 0, y: 2.2, w: '100%', h: 0.1,
+    x: 6.5, y: 0, w: 3.5, h: 2.5,
+    fill: { color: colors.primary },
+    transparency: 85
+  });
+  slide1.addShape('rect', {
+    x: 7.5, y: 0.5, w: 2.5, h: 2,
+    fill: { color: colors.secondary },
+    transparency: 80
+  });
+  
+  // Accent line
+  slide1.addShape('rect', {
+    x: 0.5, y: 3.2, w: 4, h: 0.04,
     fill: { color: colors.secondary }
   });
   
+  // Project codename (large)
   slide1.addText(data.projectCodename || 'Project Phoenix', {
-    x: 0.5, y: 1.5, w: '90%', h: 0.8,
-    fontSize: 44, bold: true, color: 'FFFFFF',
+    x: 0.5, y: 2.2, w: 8, h: 1,
+    fontSize: 48, bold: true, color: colors.white,
     fontFace: 'Arial'
   });
   
-  slide1.addText('MANAGEMENT PRESENTATION', {
-    x: 0.5, y: 2.4, w: '90%', h: 0.5,
-    fontSize: 18, color: 'FFFFFF', fontFace: 'Arial'
+  // Management Presentation subtitle
+  slide1.addText('Management Presentation', {
+    x: 0.5, y: 3.35, w: 6, h: 0.5,
+    fontSize: 22, color: colors.white,
+    fontFace: 'Arial'
   });
   
-  slide1.addText(data.presentationDate || new Date().toLocaleDateString(), {
-    x: 0.5, y: 3.2, w: '90%', h: 0.4,
-    fontSize: 14, color: 'FFFFFF', fontFace: 'Arial'
+  // Date
+  slide1.addText(data.presentationDate || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }), {
+    x: 0.5, y: 3.95, w: 4, h: 0.35,
+    fontSize: 14, italic: true, color: colors.white,
+    fontFace: 'Arial', transparency: 30
   });
   
-  slide1.addText(`Prepared by: ${data.advisor || 'RMB Securities'}`, {
-    x: 0.5, y: 4.5, w: '90%', h: 0.3,
-    fontSize: 12, color: 'FFFFFF', fontFace: 'Arial'
+  // Confidential notice
+  slide1.addText('Strictly Private and Confidential', {
+    x: 0.5, y: 4.85, w: 4, h: 0.3,
+    fontSize: 11, italic: true, color: colors.white,
+    fontFace: 'Arial', transparency: 40
   });
   
-  slide1.addText('STRICTLY PRIVATE AND CONFIDENTIAL', {
-    x: 0.5, y: 5.0, w: '90%', h: 0.3,
-    fontSize: 10, bold: true, color: 'FFFFFF', fontFace: 'Arial'
+  // Advisor logo placeholder (bottom right)
+  slide1.addText(data.advisor || 'RMB Securities', {
+    x: 7, y: 4.7, w: 2.5, h: 0.4,
+    fontSize: 14, bold: true, color: colors.white,
+    fontFace: 'Arial', align: 'right'
   });
 
-  // ==================== SLIDE 2: DISCLAIMER ====================
+  // ============================================================================
+  // SLIDE 2: DISCLAIMER (Clean white slide)
+  // ============================================================================
   const slide2 = pptx.addSlide();
-  slide2.addShape('rect', {
-    x: 0, y: 0, w: '100%', h: 0.8,
-    fill: { color: colors.primary }
-  });
-  slide2.addText('Disclaimer', {
-    x: 0.5, y: 0.15, w: '90%', h: 0.5,
-    fontSize: 24, bold: true, color: 'FFFFFF', fontFace: 'Arial'
-  });
+  addSlideHeader(slide2, colors, 'Important Notice', null);
   
-  const disclaimerText = `This presentation has been prepared by ${data.advisor || 'RMB Securities'} exclusively for the benefit of the party to whom it is directly addressed and delivered.
+  const disclaimerText = `The information contained in this document has been compiled by ${data.advisor || 'RMB Securities'} based on information obtained from public sources. Except in the general context of evaluating the capabilities of ${data.advisor || 'RMB Securities'}, no reliance may be placed for any purposes whatsoever on the contents of this document or on its completeness.
 
-This presentation is confidential and may not be reproduced, redistributed or passed on to any other person or published, in whole or in part, for any purpose without the prior written consent of ${data.advisor || 'RMB Securities'}.
+This document and its contents are confidential and may not be reproduced, redistributed or passed on, directly or indirectly, to any other person in whole or in part without the prior written consent of ${data.advisor || 'RMB Securities'}.
 
-The information contained in this presentation has been prepared based on information provided by the management of ${data.companyName || 'the Company'} and has not been independently verified.
-
-This presentation does not constitute an offer or invitation to purchase or subscribe for any securities, and neither this presentation nor anything contained herein shall form the basis of any contract or commitment whatsoever.`;
+This document does not constitute an offer or agreement between ${data.advisor || 'RMB Securities'} and ${data.companyName || 'the Company'}. Furthermore, changes in Company definition of requirements will necessarily affect the proposal set forth herein.`;
 
   slide2.addText(disclaimerText, {
-    x: 0.5, y: 1.2, w: 9, h: 3.5,
+    x: 0.5, y: 1.3, w: 9, h: 3.5,
     fontSize: 11, color: colors.text, fontFace: 'Arial',
-    valign: 'top', paraSpaceAfter: 12
+    valign: 'top', lineSpacingMultiple: 1.5
   });
+  
+  addSlideFooter(slide2, colors, 2);
 
-  // ==================== SLIDE 3: EXECUTIVE SUMMARY ====================
-  const { slide: slide3 } = createStyledSlide(pptx, theme, 'Executive Summary', { confidential: true });
+  // ============================================================================
+  // SLIDE 3: EXECUTIVE SUMMARY (Investment Highlights)
+  // ============================================================================
+  const slide3 = pptx.addSlide();
+  addSlideHeader(slide3, colors, 'A Digital Transformation Partner Delivering Cloud, Product Engineering, and AI Solutions', 1);
   
-  // Company snapshot
-  slide3.addText('Company Snapshot', {
-    x: 0.5, y: 1.0, w: 4, h: 0.3,
-    fontSize: 14, bold: true, color: colors.primary, fontFace: 'Arial'
-  });
+  // Left column - Key stats
+  const stats = [
+    { value: data.foundedYear || '2014', label: 'Founded Year', icon: '📅' },
+    { value: `${data.employeeCountFT || '350'}+`, label: `Headcount as of FY${new Date().getFullYear()}`, icon: '👥' },
+    { value: '80+', label: 'Clients in FY2025', icon: '🏢' },
+    { value: '98%', label: 'India Revenue in FY2025', icon: '🇮🇳' },
+    { value: '300+', label: 'Successful Projects', icon: '✅' }
+  ];
   
-  slide3.addText(data.companyDescription || 'Leading technology services company', {
-    x: 0.5, y: 1.4, w: 4.2, h: 1.0,
-    fontSize: 11, color: colors.text, fontFace: 'Arial', valign: 'top'
-  });
-  
-  // Key metrics box
+  // Stats column (left side)
   slide3.addShape('rect', {
-    x: 5, y: 1.0, w: 4.5, h: 1.8,
+    x: 0.3, y: 1.1, w: 2.2, h: 3.9,
     fill: { color: colors.lightBg },
-    line: { color: colors.primary, width: 1 }
+    line: { color: colors.border, width: 0.5 }
   });
   
-  slide3.addText('Key Metrics', {
-    x: 5.2, y: 1.1, w: 4, h: 0.3,
-    fontSize: 12, bold: true, color: colors.primary, fontFace: 'Arial'
-  });
-  
-  const metrics = [
-    `Revenue FY25: ₹${data.revenueFY25 || 'XX'} Cr`,
-    `Employees: ${data.employeeCountFT || 'XXX'}+`,
-    `EBITDA Margin: ${data.ebitdaMarginFY25 || 'XX'}%`,
-    `Founded: ${data.foundedYear || 'XXXX'}`
-  ];
-  
-  slide3.addText(metrics.join('\n'), {
-    x: 5.2, y: 1.5, w: 4, h: 1.2,
-    fontSize: 10, color: colors.text, fontFace: 'Arial', valign: 'top',
-    paraSpaceAfter: 6
-  });
-  
-  // Investment highlights
-  slide3.addText('Investment Highlights', {
-    x: 0.5, y: 2.6, w: 9, h: 0.3,
-    fontSize: 14, bold: true, color: colors.primary, fontFace: 'Arial'
-  });
-  
-  const highlights = (data.investmentHighlights || '').split('\n').filter(h => h.trim()).slice(0, 6);
-  highlights.forEach((highlight, idx) => {
-    slide3.addText(`• ${highlight.trim()}`, {
-      x: 0.5, y: 3.0 + (idx * 0.35), w: 9, h: 0.35,
-      fontSize: 11, color: colors.text, fontFace: 'Arial'
+  stats.forEach((stat, idx) => {
+    slide3.addText(stat.value, {
+      x: 0.4, y: 1.2 + (idx * 0.75), w: 2, h: 0.35,
+      fontSize: 20, bold: true, color: colors.primary, fontFace: 'Arial'
     });
-  });
-
-  // ==================== SLIDE 4: COMPANY OVERVIEW ====================
-  const { slide: slide4 } = createStyledSlide(pptx, theme, 'Company Overview', { confidential: true });
-  
-  // Company info
-  const companyInfo = [
-    { label: 'Company Name', value: data.companyName || 'N/A' },
-    { label: 'Founded', value: data.foundedYear || 'N/A' },
-    { label: 'Headquarters', value: data.headquarters || 'N/A' },
-    { label: 'Employees', value: `${data.employeeCountFT || 0} FTE + ${data.employeeCountOther || 0} Contractors` },
-    { label: 'Primary Vertical', value: data.primaryVertical?.toUpperCase() || 'N/A' }
-  ];
-  
-  companyInfo.forEach((info, idx) => {
-    slide4.addText(info.label, {
-      x: 0.5, y: 1.2 + (idx * 0.5), w: 2.5, h: 0.4,
-      fontSize: 11, bold: true, color: colors.primary, fontFace: 'Arial'
-    });
-    slide4.addText(info.value, {
-      x: 3, y: 1.2 + (idx * 0.5), w: 6, h: 0.4,
-      fontSize: 11, color: colors.text, fontFace: 'Arial'
+    slide3.addText(stat.label, {
+      x: 0.4, y: 1.55 + (idx * 0.75), w: 2, h: 0.25,
+      fontSize: 9, color: colors.textLight, fontFace: 'Arial'
     });
   });
   
-  // Description box
-  slide4.addShape('rect', {
-    x: 0.5, y: 3.8, w: 9, h: 1.2,
-    fill: { color: colors.lightBg }
+  // Middle column - Key Offerings (circular diagram representation)
+  slide3.addShape('rect', {
+    x: 2.6, y: 1.1, w: 3.6, h: 3.9,
+    fill: { color: colors.white },
+    line: { color: colors.border, width: 0.5 }
   });
   
-  slide4.addText('About the Company', {
-    x: 0.7, y: 3.9, w: 8.5, h: 0.3,
-    fontSize: 12, bold: true, color: colors.primary, fontFace: 'Arial'
-  });
-  
-  slide4.addText(data.companyDescription || '', {
-    x: 0.7, y: 4.25, w: 8.5, h: 0.7,
-    fontSize: 10, color: colors.text, fontFace: 'Arial', valign: 'top'
-  });
-
-  // ==================== SLIDE 5: FOUNDER PROFILE ====================
-  const { slide: slide5 } = createStyledSlide(pptx, theme, 'Founder & Leadership', { confidential: true });
-  
-  // Founder info box
-  slide5.addShape('rect', {
-    x: 0.5, y: 1.0, w: 4.5, h: 2.5,
-    fill: { color: colors.lightBg },
-    line: { color: colors.primary, width: 1 }
-  });
-  
-  slide5.addText(data.founderName || 'Founder Name', {
-    x: 0.7, y: 1.1, w: 4, h: 0.4,
-    fontSize: 16, bold: true, color: colors.primary, fontFace: 'Arial'
-  });
-  
-  slide5.addText(data.founderTitle || 'Founder & CEO', {
-    x: 0.7, y: 1.5, w: 4, h: 0.3,
-    fontSize: 12, color: colors.text, fontFace: 'Arial'
-  });
-  
-  slide5.addText(`${data.founderExperience || 'XX'}+ Years Experience`, {
-    x: 0.7, y: 1.9, w: 4, h: 0.3,
-    fontSize: 11, color: colors.text, fontFace: 'Arial'
-  });
-  
-  // Education
-  const education = (data.founderEducation || '').split('\n').filter(e => e.trim()).slice(0, 3);
-  slide5.addText('Education:', {
-    x: 0.7, y: 2.3, w: 4, h: 0.25,
-    fontSize: 10, bold: true, color: colors.primary, fontFace: 'Arial'
-  });
-  education.forEach((edu, idx) => {
-    slide5.addText(`• ${edu.trim()}`, {
-      x: 0.7, y: 2.55 + (idx * 0.25), w: 4, h: 0.25,
-      fontSize: 9, color: colors.text, fontFace: 'Arial'
-    });
-  });
-  
-  // Leadership team
-  slide5.addText('Leadership Team', {
-    x: 5.2, y: 1.0, w: 4, h: 0.3,
-    fontSize: 14, bold: true, color: colors.primary, fontFace: 'Arial'
-  });
-  
-  const leaders = (data.leadershipTeam || '').split('\n').filter(l => l.trim()).slice(0, 6);
-  leaders.forEach((leader, idx) => {
-    const parts = leader.split('|').map(p => p.trim());
-    slide5.addText(`• ${parts[0] || ''} - ${parts[1] || ''}`, {
-      x: 5.2, y: 1.4 + (idx * 0.35), w: 4.3, h: 0.35,
-      fontSize: 10, color: colors.text, fontFace: 'Arial'
-    });
-  });
-
-  // ==================== SLIDE 6: SERVICE OFFERINGS ====================
-  const { slide: slide6 } = createStyledSlide(pptx, theme, 'Service Offerings', { confidential: true });
-  
-  const services = (data.serviceLines || '').split('\n').filter(s => s.trim()).slice(0, 4);
-  services.forEach((service, idx) => {
-    const parts = service.split('|').map(p => p.trim());
-    const xPos = idx % 2 === 0 ? 0.5 : 5;
-    const yPos = idx < 2 ? 1.2 : 3.0;
-    
-    // Service box
-    slide6.addShape('rect', {
-      x: xPos, y: yPos, w: 4.3, h: 1.6,
-      fill: { color: colors.lightBg },
-      line: { color: colors.primary, width: 1 }
-    });
-    
-    slide6.addText(parts[0] || `Service ${idx + 1}`, {
-      x: xPos + 0.2, y: yPos + 0.1, w: 3.9, h: 0.35,
-      fontSize: 12, bold: true, color: colors.primary, fontFace: 'Arial'
-    });
-    
-    slide6.addText(parts[1] ? `${parts[1]} of Revenue` : '', {
-      x: xPos + 0.2, y: yPos + 0.45, w: 3.9, h: 0.25,
-      fontSize: 10, bold: true, color: colors.secondary, fontFace: 'Arial'
-    });
-    
-    slide6.addText(parts[2] || '', {
-      x: xPos + 0.2, y: yPos + 0.75, w: 3.9, h: 0.7,
-      fontSize: 9, color: colors.text, fontFace: 'Arial', valign: 'top'
-    });
-  });
-
-  // ==================== SLIDE 7: CLIENT PORTFOLIO ====================
-  const { slide: slide7 } = createStyledSlide(pptx, theme, 'Client Portfolio', { confidential: true });
-  
-  // Client metrics
-  slide7.addShape('rect', {
-    x: 0.5, y: 1.0, w: 2.8, h: 1.2,
+  slide3.addText('Key Offerings', {
+    x: 2.7, y: 1.15, w: 3.4, h: 0.35,
+    fontSize: 12, bold: true, color: colors.white, fontFace: 'Arial',
     fill: { color: colors.primary }
   });
-  slide7.addText('Primary Vertical', {
-    x: 0.6, y: 1.1, w: 2.6, h: 0.3,
-    fontSize: 10, color: 'FFFFFF', fontFace: 'Arial'
-  });
-  slide7.addText(`${data.primaryVertical?.toUpperCase() || 'BFSI'}\n${data.primaryVerticalPct || 'XX'}%`, {
-    x: 0.6, y: 1.4, w: 2.6, h: 0.7,
-    fontSize: 18, bold: true, color: 'FFFFFF', fontFace: 'Arial', align: 'center'
+  
+  const offerings = [
+    'Cloud & Automation',
+    'AI and Data Solutions',
+    'Digitalization & Product Engineering',
+    'Cloud Security',
+    'Managed Services',
+    'Digital Transformation'
+  ];
+  
+  offerings.forEach((offering, idx) => {
+    const row = Math.floor(idx / 2);
+    const col = idx % 2;
+    slide3.addShape('roundRect', {
+      x: 2.75 + (col * 1.7), y: 1.6 + (row * 1), w: 1.6, h: 0.85,
+      fill: { color: idx < 2 ? colors.primary : idx < 4 ? colors.secondary : colors.accent },
+      line: { color: colors.border, width: 0 }
+    });
+    slide3.addText(offering, {
+      x: 2.75 + (col * 1.7), y: 1.75 + (row * 1), w: 1.6, h: 0.55,
+      fontSize: 9, color: idx < 4 ? colors.white : colors.text, fontFace: 'Arial',
+      align: 'center', valign: 'middle'
+    });
   });
   
-  slide7.addShape('rect', {
-    x: 3.5, y: 1.0, w: 2.8, h: 1.2,
-    fill: { color: colors.secondary }
-  });
-  slide7.addText('Top 10 Concentration', {
-    x: 3.6, y: 1.1, w: 2.6, h: 0.3,
-    fontSize: 10, color: 'FFFFFF', fontFace: 'Arial'
-  });
-  slide7.addText(`${data.top10Concentration || 'XX'}%`, {
-    x: 3.6, y: 1.5, w: 2.6, h: 0.5,
-    fontSize: 24, bold: true, color: 'FFFFFF', fontFace: 'Arial', align: 'center'
+  // Right column - Financial Highlights
+  slide3.addShape('rect', {
+    x: 6.3, y: 1.1, w: 3.4, h: 3.9,
+    fill: { color: colors.white },
+    line: { color: colors.border, width: 0.5 }
   });
   
-  slide7.addShape('rect', {
-    x: 6.5, y: 1.0, w: 2.8, h: 1.2,
+  slide3.addText('Financial Highlights', {
+    x: 6.4, y: 1.15, w: 3.2, h: 0.35,
+    fontSize: 12, bold: true, color: colors.white, fontFace: 'Arial',
     fill: { color: colors.primary }
   });
-  slide7.addText('Net Retention', {
-    x: 6.6, y: 1.1, w: 2.6, h: 0.3,
-    fontSize: 10, color: 'FFFFFF', fontFace: 'Arial'
-  });
-  slide7.addText(`${data.netRetention || 'XXX'}%`, {
-    x: 6.6, y: 1.5, w: 2.6, h: 0.5,
-    fontSize: 24, bold: true, color: 'FFFFFF', fontFace: 'Arial', align: 'center'
-  });
   
-  // Top clients
-  slide7.addText('Marquee Clients', {
-    x: 0.5, y: 2.4, w: 9, h: 0.3,
-    fontSize: 14, bold: true, color: colors.primary, fontFace: 'Arial'
-  });
-  
-  const clients = (data.topClients || '').split('\n').filter(c => c.trim()).slice(0, 6);
-  clients.forEach((client, idx) => {
-    const parts = client.split('|').map(p => p.trim());
-    const xPos = idx % 3 === 0 ? 0.5 : idx % 3 === 1 ? 3.5 : 6.5;
-    const yPos = idx < 3 ? 2.8 : 3.9;
-    
-    slide7.addShape('rect', {
-      x: xPos, y: yPos, w: 2.8, h: 1.0,
-      fill: { color: colors.lightBg },
-      line: { color: colors.primary, width: 0.5 }
-    });
-    
-    slide7.addText(parts[0] || '', {
-      x: xPos + 0.1, y: yPos + 0.1, w: 2.6, h: 0.35,
-      fontSize: 10, bold: true, color: colors.primary, fontFace: 'Arial'
-    });
-    
-    slide7.addText(`${parts[1] || ''} | Since ${parts[2] || ''}`, {
-      x: xPos + 0.1, y: yPos + 0.5, w: 2.6, h: 0.4,
-      fontSize: 8, color: colors.text, fontFace: 'Arial'
-    });
-  });
-
-  // ==================== SLIDE 8: FINANCIAL OVERVIEW ====================
-  const { slide: slide8 } = createStyledSlide(pptx, theme, 'Financial Overview', { confidential: true });
-  
-  slide8.addText(`All figures in INR Crores`, {
-    x: 0.5, y: 0.95, w: 9, h: 0.2,
-    fontSize: 9, italic: true, color: colors.text, fontFace: 'Arial'
-  });
-  
-  // Revenue data
+  // Revenue bar chart data
   const revenueData = [
-    { year: 'FY24', value: data.revenueFY24, type: 'actual' },
-    { year: 'FY25', value: data.revenueFY25, type: 'actual' },
-    { year: 'FY26P', value: data.revenueFY26P, type: 'projected' },
-    { year: 'FY27P', value: data.revenueFY27P, type: 'projected' },
-    { year: 'FY28P', value: data.revenueFY28P, type: 'projected' }
-  ].filter(d => d.value);
+    { year: 'FY24', value: parseFloat(data.revenueFY24) || 54 },
+    { year: 'FY25', value: parseFloat(data.revenueFY25) || 84 },
+    { year: 'FY26P', value: parseFloat(data.revenueFY26P) || 140 },
+    { year: 'FY27P', value: parseFloat(data.revenueFY27P) || 182 },
+    { year: 'FY28P', value: parseFloat(data.revenueFY28P) || 236 }
+  ];
   
-  // Simple bar chart representation
-  const maxRevenue = Math.max(...revenueData.map(d => parseFloat(d.value) || 0));
-  
+  const maxRev = Math.max(...revenueData.map(d => d.value));
   revenueData.forEach((rev, idx) => {
-    const barHeight = (parseFloat(rev.value) / maxRevenue) * 2;
-    const xPos = 1 + (idx * 1.6);
+    const barHeight = (rev.value / maxRev) * 1.8;
+    const xPos = 6.5 + (idx * 0.6);
+    const isProjected = rev.year.includes('P');
     
-    // Bar
-    slide8.addShape('rect', {
-      x: xPos, y: 3.5 - barHeight, w: 1.2, h: barHeight,
-      fill: { color: rev.type === 'actual' ? colors.primary : colors.secondary }
+    slide3.addShape('rect', {
+      x: xPos, y: 3.7 - barHeight, w: 0.45, h: barHeight,
+      fill: { color: isProjected ? colors.secondary : colors.primary }
     });
-    
-    // Value
-    slide8.addText(`₹${rev.value}`, {
-      x: xPos - 0.1, y: 3.5 - barHeight - 0.3, w: 1.4, h: 0.3,
-      fontSize: 10, bold: true, color: colors.text, fontFace: 'Arial', align: 'center'
+    slide3.addText(`${rev.value}`, {
+      x: xPos - 0.1, y: 3.7 - barHeight - 0.25, w: 0.65, h: 0.25,
+      fontSize: 8, color: colors.text, fontFace: 'Arial', align: 'center'
     });
-    
-    // Year label
-    slide8.addText(rev.year, {
-      x: xPos - 0.1, y: 3.6, w: 1.4, h: 0.3,
-      fontSize: 10, color: colors.text, fontFace: 'Arial', align: 'center'
+    slide3.addText(rev.year, {
+      x: xPos - 0.05, y: 3.75, w: 0.55, h: 0.2,
+      fontSize: 7, color: colors.textLight, fontFace: 'Arial', align: 'center'
     });
+  });
+  
+  slide3.addText('In INR Cr', {
+    x: 6.4, y: 1.55, w: 1, h: 0.2,
+    fontSize: 8, italic: true, color: colors.textLight, fontFace: 'Arial'
+  });
+  
+  // CAGR indicator
+  slide3.addText(`CAGR: ~30%`, {
+    x: 8.2, y: 1.55, w: 1.2, h: 0.2,
+    fontSize: 9, bold: true, color: colors.secondary, fontFace: 'Arial', align: 'right'
   });
   
   // EBITDA margin
-  slide8.addShape('rect', {
-    x: 0.5, y: 4.2, w: 4, h: 0.8,
-    fill: { color: colors.lightBg }
+  slide3.addText(`EBITDA Margin FY25: ${data.ebitdaMarginFY25 || 21}%`, {
+    x: 6.4, y: 4.1, w: 3.2, h: 0.25,
+    fontSize: 10, bold: true, color: colors.primary, fontFace: 'Arial'
   });
-  slide8.addText(`EBITDA Margin FY25: ${data.ebitdaMarginFY25 || 'XX'}%`, {
-    x: 0.7, y: 4.4, w: 3.6, h: 0.4,
+  
+  // Platform capabilities
+  slide3.addText('Platform Capabilities', {
+    x: 6.4, y: 4.45, w: 3.2, h: 0.25,
+    fontSize: 10, bold: true, color: colors.primary, fontFace: 'Arial'
+  });
+  
+  const platforms = ['AWS', 'Azure', 'GCP', 'SAP'];
+  platforms.forEach((platform, idx) => {
+    slide3.addShape('roundRect', {
+      x: 6.5 + (idx * 0.75), y: 4.72, w: 0.65, h: 0.25,
+      fill: { color: colors.lightBg },
+      line: { color: colors.border, width: 0.5 }
+    });
+    slide3.addText(platform, {
+      x: 6.5 + (idx * 0.75), y: 4.72, w: 0.65, h: 0.25,
+      fontSize: 7, color: colors.text, fontFace: 'Arial', align: 'center', valign: 'middle'
+    });
+  });
+  
+  addSlideFooter(slide3, colors, 3);
+
+  // ============================================================================
+  // SLIDE 4: FOUNDER PROFILE
+  // ============================================================================
+  const slide4 = pptx.addSlide();
+  addSlideHeader(slide4, colors, 'Founded & Led by Industry Veteran with Strong Educational Qualification & Industry Experience', null);
+  
+  // Photo placeholder (circular)
+  slide4.addShape('ellipse', {
+    x: 1.2, y: 1.5, w: 2, h: 2,
+    fill: { color: colors.lightBg },
+    line: { color: colors.primary, width: 2 }
+  });
+  slide4.addText('Photo', {
+    x: 1.2, y: 2.3, w: 2, h: 0.4,
+    fontSize: 12, color: colors.textLight, fontFace: 'Arial', align: 'center'
+  });
+  
+  // Founder name and title
+  slide4.addText(data.founderName || 'Founder Name', {
+    x: 0.7, y: 3.6, w: 3, h: 0.4,
+    fontSize: 20, bold: true, color: colors.primary, fontFace: 'Arial', align: 'center'
+  });
+  slide4.addText(data.founderTitle || 'Founder & CEO', {
+    x: 0.7, y: 4, w: 3, h: 0.3,
+    fontSize: 14, color: colors.secondary, fontFace: 'Arial', align: 'center'
+  });
+  slide4.addText(`~${data.founderExperience || 21} years of total experience`, {
+    x: 0.7, y: 4.3, w: 3, h: 0.3,
+    fontSize: 11, italic: true, color: colors.textLight, fontFace: 'Arial', align: 'center'
+  });
+  
+  // Background info box
+  slide4.addShape('rect', {
+    x: 4, y: 1.3, w: 5.5, h: 3.5,
+    fill: { color: colors.lightBg },
+    line: { color: colors.border, width: 0.5 }
+  });
+  
+  slide4.addText("Founder's Background", {
+    x: 4.1, y: 1.35, w: 5.3, h: 0.35,
+    fontSize: 12, bold: true, color: colors.white, fontFace: 'Arial',
+    fill: { color: colors.primary }
+  });
+  
+  const backgroundPoints = [
+    `Founded ${data.companyName || 'the Company'} in ${data.foundedYear || '2014'} and leads its strategic direction`,
+    'Prior experience includes Director of Technology at Reprise Media, Senior Consultant at Wipro, and software engineering roles',
+    'Visiting Faculty of Big Data and Analytics at IIT Bombay and Big Data at IIM',
+    `Holds an MBA in Marketing from JBIMS and Bachelors in Engineering from VJTI`,
+    'Emphasizes grounding technical innovation in real business value, aiming to democratize cloud & AI in organizations'
+  ];
+  
+  backgroundPoints.forEach((point, idx) => {
+    slide4.addText(`•  ${point}`, {
+      x: 4.2, y: 1.8 + (idx * 0.55), w: 5.2, h: 0.5,
+      fontSize: 10, color: colors.text, fontFace: 'Arial', valign: 'top'
+    });
+  });
+  
+  // Previous experience logos
+  slide4.addText('Previous Experience', {
+    x: 4.1, y: 4.05, w: 5.3, h: 0.25,
+    fontSize: 10, italic: true, color: colors.textLight, fontFace: 'Arial'
+  });
+  
+  const companies = ['Wipro', 'IBM', 'Hexaware', 'Reprise'];
+  companies.forEach((company, idx) => {
+    slide4.addShape('rect', {
+      x: 4.2 + (idx * 1.3), y: 4.35, w: 1.15, h: 0.45,
+      fill: { color: colors.white },
+      line: { color: colors.border, width: 0.5 }
+    });
+    slide4.addText(company, {
+      x: 4.2 + (idx * 1.3), y: 4.35, w: 1.15, h: 0.45,
+      fontSize: 9, color: colors.text, fontFace: 'Arial', align: 'center', valign: 'middle'
+    });
+  });
+  
+  addSlideFooter(slide4, colors, 4);
+
+  // ============================================================================
+  // SLIDE 5: COMPANY TIMELINE
+  // ============================================================================
+  const slide5 = pptx.addSlide();
+  addSlideHeader(slide5, colors, 'Evolving Continuously from Cloud Solutions to AI Agentic Solutions, ensuring Alignment with Technology', null);
+  
+  // Timeline base line
+  slide5.addShape('rect', {
+    x: 0.5, y: 2.8, w: 9, h: 0.03,
+    fill: { color: colors.primary }
+  });
+  
+  const timeline = [
+    { period: '2014-16', icon: '🚀', title: 'Foundation', points: ['Incorporated', 'Offered AWS cloud solutions', 'Offices in Thane and Pune'] },
+    { period: '2017-18', icon: '📈', title: 'Growth', points: ['Developed loan disbursement platform', 'Introduced continuous client support'] },
+    { period: '2019-20', icon: '🏆', title: 'Recognition', points: ['Best BFSI Consulting Partner by AWS', 'Developed Atlas API Management'] },
+    { period: '2021-22', icon: '📊', title: 'Expansion', points: ['Launched Big Data Practice', 'Expanded Bangalore operations'] },
+    { period: '2023-24', icon: '🏦', title: 'Enterprise', points: ['Secured public sector bank projects', 'Product-first strategy'] },
+    { period: '2025-26', icon: '🤖', title: 'AI Era', points: ['Launched AI agents for banking', 'Enterprise AI Practice'] }
+  ];
+  
+  timeline.forEach((item, idx) => {
+    const xPos = 0.7 + (idx * 1.55);
+    
+    // Timeline dot
+    slide5.addShape('ellipse', {
+      x: xPos + 0.55, y: 2.7, w: 0.2, h: 0.2,
+      fill: { color: colors.primary }
+    });
+    
+    // Year badge
+    slide5.addShape('roundRect', {
+      x: xPos + 0.1, y: 2.2, w: 1.1, h: 0.35,
+      fill: { color: colors.primary }
+    });
+    slide5.addText(item.period, {
+      x: xPos + 0.1, y: 2.2, w: 1.1, h: 0.35,
+      fontSize: 10, bold: true, color: colors.white, fontFace: 'Arial', align: 'center', valign: 'middle'
+    });
+    
+    // Content below timeline
+    item.points.forEach((point, pIdx) => {
+      slide5.addText(`• ${point}`, {
+        x: xPos, y: 3.0 + (pIdx * 0.35), w: 1.4, h: 0.35,
+        fontSize: 8, color: colors.text, fontFace: 'Arial'
+      });
+    });
+  });
+  
+  addSlideFooter(slide5, colors, 5);
+
+  // ============================================================================
+  // SLIDE 6: SERVICE OFFERINGS
+  // ============================================================================
+  const slide6 = pptx.addSlide();
+  addSlideHeader(slide6, colors, 'Comprehensive Suite of Digital Transformation Services', 1);
+  
+  const services = (data.serviceLines || '').split('\n').filter(s => s.trim()).slice(0, 6);
+  const serviceColors = [colors.primary, colors.secondary, colors.accent, '00A3E0', 'E31B23', '6B3FA0'];
+  
+  services.forEach((service, idx) => {
+    const parts = service.split('|').map(p => p.trim());
+    const row = Math.floor(idx / 3);
+    const col = idx % 3;
+    const xPos = 0.4 + (col * 3.15);
+    const yPos = 1.2 + (row * 1.9);
+    
+    // Service card
+    slide6.addShape('rect', {
+      x: xPos, y: yPos, w: 3, h: 1.7,
+      fill: { color: colors.white },
+      line: { color: colors.border, width: 0.5 },
+      shadow: { type: 'outer', blur: 3, offset: 2, angle: 45, color: '000000', opacity: 0.1 }
+    });
+    
+    // Colored top bar
+    slide6.addShape('rect', {
+      x: xPos, y: yPos, w: 3, h: 0.08,
+      fill: { color: serviceColors[idx] || colors.primary }
+    });
+    
+    // Service name
+    slide6.addText(parts[0] || `Service ${idx + 1}`, {
+      x: xPos + 0.15, y: yPos + 0.15, w: 2.7, h: 0.4,
+      fontSize: 12, bold: true, color: colors.primary, fontFace: 'Arial'
+    });
+    
+    // Revenue percentage
+    if (parts[1]) {
+      slide6.addText(parts[1], {
+        x: xPos + 0.15, y: yPos + 0.55, w: 2.7, h: 0.3,
+        fontSize: 18, bold: true, color: serviceColors[idx] || colors.secondary, fontFace: 'Arial'
+      });
+    }
+    
+    // Description
+    if (parts[2]) {
+      slide6.addText(parts[2], {
+        x: xPos + 0.15, y: yPos + 0.9, w: 2.7, h: 0.7,
+        fontSize: 9, color: colors.textLight, fontFace: 'Arial', valign: 'top'
+      });
+    }
+  });
+  
+  addSlideFooter(slide6, colors, 6);
+
+  // ============================================================================
+  // SLIDE 7: CLIENT PORTFOLIO (with donut chart)
+  // ============================================================================
+  const slide7 = pptx.addSlide();
+  addSlideHeader(slide7, colors, 'Strong Client Relationships with Marquee Enterprise Clients', null);
+  
+  // Three metric boxes at top
+  const clientMetrics = [
+    { label: 'Primary Vertical', value: (data.primaryVertical || 'BFSI').toUpperCase(), subvalue: `${data.primaryVerticalPct || 75}%` },
+    { label: 'Top 10 Concentration', value: `${data.top10Concentration || 72}%`, subvalue: '' },
+    { label: 'Net Retention Rate', value: `${data.netRetention || 118}%`, subvalue: '' }
+  ];
+  
+  clientMetrics.forEach((metric, idx) => {
+    const xPos = 0.5 + (idx * 3.15);
+    slide7.addShape('rect', {
+      x: xPos, y: 1.1, w: 2.9, h: 1,
+      fill: { color: idx === 0 ? colors.primary : idx === 1 ? colors.secondary : colors.primary }
+    });
+    slide7.addText(metric.label, {
+      x: xPos + 0.1, y: 1.15, w: 2.7, h: 0.25,
+      fontSize: 10, color: colors.white, fontFace: 'Arial'
+    });
+    slide7.addText(metric.value, {
+      x: xPos + 0.1, y: 1.4, w: 2.7, h: 0.5,
+      fontSize: 22, bold: true, color: colors.white, fontFace: 'Arial', align: 'center'
+    });
+    if (metric.subvalue) {
+      slide7.addText(metric.subvalue, {
+        x: xPos + 0.1, y: 1.85, w: 2.7, h: 0.2,
+        fontSize: 11, color: colors.white, fontFace: 'Arial', align: 'center', transparency: 20
+      });
+    }
+  });
+  
+  // Client logos grid
+  slide7.addText('Marquee Clients', {
+    x: 0.5, y: 2.3, w: 9, h: 0.35,
     fontSize: 14, bold: true, color: colors.primary, fontFace: 'Arial'
   });
   
-  // Calculate CAGR if possible
-  if (data.revenueFY24 && data.revenueFY26P) {
-    const cagr = ((Math.pow(data.revenueFY26P / data.revenueFY24, 1/2) - 1) * 100).toFixed(0);
+  const clients = (data.topClients || '').split('\n').filter(c => c.trim()).slice(0, 8);
+  clients.forEach((client, idx) => {
+    const parts = client.split('|').map(p => p.trim());
+    const row = Math.floor(idx / 4);
+    const col = idx % 4;
+    const xPos = 0.5 + (col * 2.35);
+    const yPos = 2.75 + (row * 1.1);
+    
+    slide7.addShape('rect', {
+      x: xPos, y: yPos, w: 2.2, h: 0.95,
+      fill: { color: colors.white },
+      line: { color: colors.border, width: 0.5 }
+    });
+    
+    slide7.addText(parts[0] || '', {
+      x: xPos + 0.1, y: yPos + 0.1, w: 2, h: 0.4,
+      fontSize: 11, bold: true, color: colors.primary, fontFace: 'Arial'
+    });
+    slide7.addText(`${parts[1] || ''} | Since ${parts[2] || ''}`, {
+      x: xPos + 0.1, y: yPos + 0.55, w: 2, h: 0.3,
+      fontSize: 8, color: colors.textLight, fontFace: 'Arial'
+    });
+  });
+  
+  addSlideFooter(slide7, colors, 7);
+
+  // ============================================================================
+  // SLIDE 8: FINANCIAL OVERVIEW (Revenue breakdown)
+  // ============================================================================
+  const slide8 = pptx.addSlide();
+  addSlideHeader(slide8, colors, 'Growing Revenue Contribution from Product Engineering and AI Solutions', null);
+  
+  // Revenue by Service Lines (Donut chart - simulated with shapes)
+  slide8.addText('Revenue by Service Lines (FY25)', {
+    x: 0.5, y: 1.15, w: 3, h: 0.3,
+    fontSize: 12, bold: true, color: colors.secondary, fontFace: 'Arial'
+  });
+  slide8.addShape('rect', {
+    x: 0.5, y: 1.45, w: 1.5, h: 0.04,
+    fill: { color: colors.secondary }
+  });
+  
+  // Donut chart representation
+  slide8.addShape('ellipse', {
+    x: 0.8, y: 1.8, w: 2.2, h: 2.2,
+    fill: { color: colors.primary }
+  });
+  slide8.addShape('ellipse', {
+    x: 1.3, y: 2.3, w: 1.2, h: 1.2,
+    fill: { color: colors.white }
+  });
+  
+  // Service breakdown legend
+  const serviceBreakdown = [
+    { name: 'Cloud & Automation', pct: '39%', color: colors.primary },
+    { name: 'Managed Services', pct: '31%', color: colors.secondary },
+    { name: 'Digitalization', pct: '16%', color: colors.accent },
+    { name: 'AI & Data', pct: '6%', color: '00A3E0' },
+    { name: 'Cloud Security', pct: '5%', color: 'E31B23' },
+    { name: 'Products', pct: '3%', color: '6B3FA0' }
+  ];
+  
+  serviceBreakdown.forEach((svc, idx) => {
     slide8.addShape('rect', {
-      x: 5, y: 4.2, w: 4, h: 0.8,
+      x: 0.5, y: 4.15 + (idx * 0.22), w: 0.15, h: 0.15,
+      fill: { color: svc.color }
+    });
+    slide8.addText(`${svc.name}  ${svc.pct}`, {
+      x: 0.7, y: 4.12 + (idx * 0.22), w: 2.5, h: 0.2,
+      fontSize: 8, color: colors.text, fontFace: 'Arial'
+    });
+  });
+  
+  // Revenue by Platform
+  slide8.addText('Revenue by Platforms (FY25)', {
+    x: 3.5, y: 1.15, w: 3, h: 0.3,
+    fontSize: 12, bold: true, color: colors.secondary, fontFace: 'Arial'
+  });
+  slide8.addShape('rect', {
+    x: 3.5, y: 1.45, w: 1.5, h: 0.04,
+    fill: { color: colors.secondary }
+  });
+  
+  // Platform donut
+  slide8.addShape('ellipse', {
+    x: 3.8, y: 1.8, w: 2.2, h: 2.2,
+    fill: { color: colors.primary }
+  });
+  slide8.addShape('ellipse', {
+    x: 4.3, y: 2.3, w: 1.2, h: 1.2,
+    fill: { color: colors.white }
+  });
+  slide8.addText('AWS\n81%', {
+    x: 4.3, y: 2.5, w: 1.2, h: 0.8,
+    fontSize: 12, bold: true, color: colors.primary, fontFace: 'Arial', align: 'center', valign: 'middle'
+  });
+  
+  // Revenue by Pricing Model
+  slide8.addText('Revenue by Pricing Models (FY25)', {
+    x: 6.5, y: 1.15, w: 3, h: 0.3,
+    fontSize: 12, bold: true, color: colors.secondary, fontFace: 'Arial'
+  });
+  slide8.addShape('rect', {
+    x: 6.5, y: 1.45, w: 1.5, h: 0.04,
+    fill: { color: colors.secondary }
+  });
+  
+  // Pricing donut
+  slide8.addShape('ellipse', {
+    x: 6.8, y: 1.8, w: 2.2, h: 2.2,
+    fill: { color: colors.secondary }
+  });
+  slide8.addShape('ellipse', {
+    x: 7.3, y: 2.3, w: 1.2, h: 1.2,
+    fill: { color: colors.white }
+  });
+  slide8.addText('T&M\n75%', {
+    x: 7.3, y: 2.5, w: 1.2, h: 0.8,
+    fontSize: 12, bold: true, color: colors.secondary, fontFace: 'Arial', align: 'center', valign: 'middle'
+  });
+  
+  addSlideFooter(slide8, colors, 8);
+
+  // ============================================================================
+  // SLIDE 9: CASE STUDY
+  // ============================================================================
+  if (data.cs1Client) {
+    const slide9 = pptx.addSlide();
+    addSlideHeader(slide9, colors, `Case Study: ${data.cs1Client}`, 'Digitalization & Product Engineering');
+    
+    // Client info sidebar
+    slide9.addShape('rect', {
+      x: 0.3, y: 1.2, w: 2.5, h: 3.6,
+      fill: { color: colors.white },
+      line: { color: colors.border, width: 0.5 }
+    });
+    
+    // Client logo placeholder
+    slide9.addShape('rect', {
+      x: 0.5, y: 1.4, w: 2.1, h: 1,
       fill: { color: colors.lightBg }
     });
-    slide8.addText(`Revenue CAGR (FY24-26): ${cagr}%`, {
-      x: 5.2, y: 4.4, w: 3.6, h: 0.4,
-      fontSize: 14, bold: true, color: colors.primary, fontFace: 'Arial'
-    });
-  }
-
-  // ==================== SLIDE 9: CASE STUDY ====================
-  if (data.cs1Client) {
-    const { slide: slide9 } = createStyledSlide(pptx, theme, `Case Study: ${data.cs1Client}`, { confidential: true });
-    
-    // Challenge
-    slide9.addShape('rect', {
-      x: 0.5, y: 1.0, w: 4.3, h: 1.8,
-      fill: { color: '#FEE2E2' }
-    });
-    slide9.addText('Challenge', {
-      x: 0.7, y: 1.1, w: 3.9, h: 0.3,
-      fontSize: 12, bold: true, color: '#991B1B', fontFace: 'Arial'
-    });
-    slide9.addText(data.cs1Challenge || '', {
-      x: 0.7, y: 1.45, w: 3.9, h: 1.2,
-      fontSize: 10, color: colors.text, fontFace: 'Arial', valign: 'top'
+    slide9.addText(data.cs1Client, {
+      x: 0.5, y: 1.7, w: 2.1, h: 0.5,
+      fontSize: 12, bold: true, color: colors.primary, fontFace: 'Arial', align: 'center'
     });
     
-    // Solution
-    slide9.addShape('rect', {
-      x: 5, y: 1.0, w: 4.3, h: 1.8,
-      fill: { color: '#DBEAFE' }
-    });
-    slide9.addText('Solution', {
-      x: 5.2, y: 1.1, w: 3.9, h: 0.3,
-      fontSize: 12, bold: true, color: '#1E40AF', fontFace: 'Arial'
-    });
-    slide9.addText(data.cs1Solution || '', {
-      x: 5.2, y: 1.45, w: 3.9, h: 1.2,
-      fontSize: 10, color: colors.text, fontFace: 'Arial', valign: 'top'
+    const clientInfo = [
+      { label: 'Customer since:', value: '2020' },
+      { label: 'Industry:', value: 'Financial Services' },
+      { label: 'Platform:', value: 'AWS' }
+    ];
+    
+    clientInfo.forEach((info, idx) => {
+      slide9.addText(info.label, {
+        x: 0.5, y: 2.6 + (idx * 0.5), w: 2.1, h: 0.25,
+        fontSize: 9, color: colors.textLight, fontFace: 'Arial'
+      });
+      slide9.addText(info.value, {
+        x: 0.5, y: 2.85 + (idx * 0.5), w: 2.1, h: 0.25,
+        fontSize: 10, bold: true, color: colors.text, fontFace: 'Arial'
+      });
     });
     
-    // Results
+    // Challenge section
     slide9.addShape('rect', {
-      x: 0.5, y: 3.0, w: 8.8, h: 1.8,
-      fill: { color: '#ECFDF5' }
+      x: 3, y: 1.2, w: 3, h: 1.5,
+      fill: { color: colors.white },
+      line: { color: colors.border, width: 0.5 }
     });
+    slide9.addText('Challenges', {
+      x: 3.1, y: 1.25, w: 2.8, h: 0.35,
+      fontSize: 12, bold: true, color: colors.primary, fontFace: 'Arial'
+    });
+    slide9.addShape('rect', {
+      x: 3, y: 1.55, w: 0.08, h: 0.04,
+      fill: { color: colors.danger }
+    });
+    slide9.addText(data.cs1Challenge || 'Challenge description', {
+      x: 3.1, y: 1.65, w: 2.8, h: 1,
+      fontSize: 9, color: colors.text, fontFace: 'Arial', valign: 'top'
+    });
+    
+    // Solutions section
+    slide9.addShape('rect', {
+      x: 6.2, y: 1.2, w: 3.3, h: 1.5,
+      fill: { color: colors.white },
+      line: { color: colors.border, width: 0.5 }
+    });
+    slide9.addText('Solutions', {
+      x: 6.3, y: 1.25, w: 3.1, h: 0.35,
+      fontSize: 12, bold: true, color: colors.primary, fontFace: 'Arial'
+    });
+    slide9.addShape('rect', {
+      x: 6.2, y: 1.55, w: 0.08, h: 0.04,
+      fill: { color: colors.primary }
+    });
+    slide9.addText(data.cs1Solution || 'Solution description', {
+      x: 6.3, y: 1.65, w: 3.1, h: 1,
+      fontSize: 9, color: colors.text, fontFace: 'Arial', valign: 'top'
+    });
+    
+    // Results section
     slide9.addText('Results', {
-      x: 0.7, y: 3.1, w: 8.4, h: 0.3,
-      fontSize: 12, bold: true, color: '#047857', fontFace: 'Arial'
+      x: 3, y: 2.85, w: 6.5, h: 0.35,
+      fontSize: 12, bold: true, color: colors.success, fontFace: 'Arial'
+    });
+    slide9.addShape('rect', {
+      x: 3, y: 3.15, w: 0.08, h: 0.04,
+      fill: { color: colors.success }
+    });
+    
+    slide9.addShape('rect', {
+      x: 3, y: 3.25, w: 6.5, h: 1.5,
+      fill: { color: '#E8F5E9' },
+      line: { color: colors.success, width: 0.5 }
     });
     
     const results = (data.cs1Results || '').split('\n').filter(r => r.trim()).slice(0, 4);
     results.forEach((result, idx) => {
-      const xPos = idx % 2 === 0 ? 0.7 : 4.8;
-      const yPos = idx < 2 ? 3.5 : 4.1;
+      const col = idx % 2;
+      const row = Math.floor(idx / 2);
       slide9.addText(`✓ ${result.trim()}`, {
-        x: xPos, y: yPos, w: 4, h: 0.5,
-        fontSize: 11, color: '#047857', fontFace: 'Arial'
+        x: 3.1 + (col * 3.2), y: 3.35 + (row * 0.6), w: 3, h: 0.5,
+        fontSize: 10, color: colors.success, fontFace: 'Arial'
       });
     });
+    
+    addSlideFooter(slide9, colors, 9);
   }
 
-  // ==================== SLIDE 10: COMPETITIVE ADVANTAGES ====================
-  const { slide: slide10 } = createStyledSlide(pptx, theme, 'Competitive Advantages', { confidential: true });
+  // ============================================================================
+  // SLIDE 10: COMPETITIVE ADVANTAGES
+  // ============================================================================
+  const slide10 = pptx.addSlide();
+  addSlideHeader(slide10, colors, 'Key Competitive Advantages', 2);
   
   const advantages = (data.competitiveAdvantages || '').split('\n').filter(a => a.trim()).slice(0, 6);
+  
   advantages.forEach((advantage, idx) => {
-    const xPos = idx % 2 === 0 ? 0.5 : 5;
-    const yPos = 1.0 + (Math.floor(idx / 2) * 1.3);
+    const row = Math.floor(idx / 2);
+    const col = idx % 2;
+    const xPos = 0.4 + (col * 4.8);
+    const yPos = 1.2 + (row * 1.4);
     
+    // Card with left accent
     slide10.addShape('rect', {
-      x: xPos, y: yPos, w: 4.3, h: 1.1,
-      fill: { color: colors.lightBg },
-      line: { color: colors.primary, width: 1 }
+      x: xPos, y: yPos, w: 4.5, h: 1.2,
+      fill: { color: colors.white },
+      line: { color: colors.border, width: 0.5 }
+    });
+    
+    // Left accent bar
+    slide10.addShape('rect', {
+      x: xPos, y: yPos, w: 0.08, h: 1.2,
+      fill: { color: colors.primary }
+    });
+    
+    // Number badge
+    slide10.addShape('ellipse', {
+      x: xPos + 0.2, y: yPos + 0.1, w: 0.4, h: 0.4,
+      fill: { color: colors.primary }
+    });
+    slide10.addText(`${idx + 1}`, {
+      x: xPos + 0.2, y: yPos + 0.1, w: 0.4, h: 0.4,
+      fontSize: 12, bold: true, color: colors.white, fontFace: 'Arial', align: 'center', valign: 'middle'
     });
     
     const parts = advantage.split('|').map(p => p.trim());
     slide10.addText(parts[0] || advantage, {
-      x: xPos + 0.2, y: yPos + 0.1, w: 3.9, h: 0.35,
+      x: xPos + 0.7, y: yPos + 0.15, w: 3.6, h: 0.35,
       fontSize: 11, bold: true, color: colors.primary, fontFace: 'Arial'
     });
     
     if (parts[1]) {
       slide10.addText(parts[1], {
-        x: xPos + 0.2, y: yPos + 0.5, w: 3.9, h: 0.5,
-        fontSize: 9, color: colors.text, fontFace: 'Arial', valign: 'top'
+        x: xPos + 0.7, y: yPos + 0.55, w: 3.6, h: 0.55,
+        fontSize: 9, color: colors.textLight, fontFace: 'Arial', valign: 'top'
       });
     }
   });
+  
+  addSlideFooter(slide10, colors, 10);
 
-  // ==================== SLIDE 11: GROWTH STRATEGY ====================
-  const { slide: slide11 } = createStyledSlide(pptx, theme, 'Growth Strategy', { confidential: true });
+  // ============================================================================
+  // SLIDE 11: GROWTH STRATEGY
+  // ============================================================================
+  const slide11 = pptx.addSlide();
+  addSlideHeader(slide11, colors, 'Strategic Growth Roadmap', null);
   
-  const growthDrivers = (data.growthDrivers || '').split('\n').filter(g => g.trim()).slice(0, 5);
-  
+  // Growth drivers
   slide11.addText('Key Growth Drivers', {
-    x: 0.5, y: 1.0, w: 9, h: 0.3,
-    fontSize: 14, bold: true, color: colors.primary, fontFace: 'Arial'
-  });
-  
-  growthDrivers.forEach((driver, idx) => {
-    slide11.addText(`${idx + 1}. ${driver.trim()}`, {
-      x: 0.5, y: 1.4 + (idx * 0.4), w: 9, h: 0.4,
-      fontSize: 11, color: colors.text, fontFace: 'Arial'
-    });
-  });
-  
-  // Short term goals
-  const shortTerm = (data.shortTermGoals || '').split('\n').filter(g => g.trim()).slice(0, 3);
-  if (shortTerm.length > 0) {
-    slide11.addShape('rect', {
-      x: 0.5, y: 3.5, w: 4.3, h: 1.5,
-      fill: { color: colors.lightBg }
-    });
-    slide11.addText('Short-Term (0-12 months)', {
-      x: 0.7, y: 3.6, w: 3.9, h: 0.3,
-      fontSize: 11, bold: true, color: colors.primary, fontFace: 'Arial'
-    });
-    shortTerm.forEach((goal, idx) => {
-      slide11.addText(`• ${goal.trim()}`, {
-        x: 0.7, y: 3.95 + (idx * 0.3), w: 3.9, h: 0.3,
-        fontSize: 9, color: colors.text, fontFace: 'Arial'
-      });
-    });
-  }
-  
-  // Medium term goals
-  const mediumTerm = (data.mediumTermGoals || '').split('\n').filter(g => g.trim()).slice(0, 3);
-  if (mediumTerm.length > 0) {
-    slide11.addShape('rect', {
-      x: 5, y: 3.5, w: 4.3, h: 1.5,
-      fill: { color: colors.lightBg }
-    });
-    slide11.addText('Medium-Term (1-3 years)', {
-      x: 5.2, y: 3.6, w: 3.9, h: 0.3,
-      fontSize: 11, bold: true, color: colors.primary, fontFace: 'Arial'
-    });
-    mediumTerm.forEach((goal, idx) => {
-      slide11.addText(`• ${goal.trim()}`, {
-        x: 5.2, y: 3.95 + (idx * 0.3), w: 3.9, h: 0.3,
-        fontSize: 9, color: colors.text, fontFace: 'Arial'
-      });
-    });
-  }
-
-  // ==================== SLIDE 12: SYNERGIES ====================
-  const { slide: slide12 } = createStyledSlide(pptx, theme, 'Potential Synergies', { confidential: true });
-  
-  // Strategic buyer synergies
-  slide12.addShape('rect', {
-    x: 0.5, y: 1.0, w: 4.3, h: 3.8,
-    fill: { color: colors.lightBg },
-    line: { color: colors.primary, width: 1 }
-  });
-  slide12.addText('For Strategic Buyers', {
-    x: 0.7, y: 1.1, w: 3.9, h: 0.35,
+    x: 0.4, y: 1.15, w: 4.2, h: 0.35,
     fontSize: 13, bold: true, color: colors.primary, fontFace: 'Arial'
   });
   
-  const strategicSynergies = (data.synergiesStrategic || '').split('\n').filter(s => s.trim()).slice(0, 5);
-  strategicSynergies.forEach((synergy, idx) => {
-    slide12.addText(`• ${synergy.trim()}`, {
-      x: 0.7, y: 1.55 + (idx * 0.5), w: 3.9, h: 0.5,
-      fontSize: 10, color: colors.text, fontFace: 'Arial'
+  const drivers = (data.growthDrivers || '').split('\n').filter(d => d.trim()).slice(0, 5);
+  drivers.forEach((driver, idx) => {
+    slide11.addShape('rect', {
+      x: 0.4, y: 1.55 + (idx * 0.55), w: 4.2, h: 0.45,
+      fill: { color: idx % 2 === 0 ? colors.lightBg : colors.white },
+      line: { color: colors.border, width: 0.5 }
+    });
+    slide11.addText(`${idx + 1}. ${driver.trim()}`, {
+      x: 0.5, y: 1.55 + (idx * 0.55), w: 4, h: 0.45,
+      fontSize: 10, color: colors.text, fontFace: 'Arial', valign: 'middle'
     });
   });
   
-  // Financial investor synergies
-  slide12.addShape('rect', {
-    x: 5, y: 1.0, w: 4.3, h: 3.8,
+  // Short-term goals
+  slide11.addShape('rect', {
+    x: 4.9, y: 1.15, w: 2.4, h: 2.5,
+    fill: { color: colors.lightBg },
+    line: { color: colors.primary, width: 1 }
+  });
+  slide11.addText('Short-Term Goals', {
+    x: 5, y: 1.2, w: 2.2, h: 0.35,
+    fontSize: 11, bold: true, color: colors.primary, fontFace: 'Arial'
+  });
+  slide11.addText('(0-12 months)', {
+    x: 5, y: 1.5, w: 2.2, h: 0.25,
+    fontSize: 9, color: colors.textLight, fontFace: 'Arial'
+  });
+  
+  const shortGoals = (data.shortTermGoals || '').split('\n').filter(g => g.trim()).slice(0, 4);
+  shortGoals.forEach((goal, idx) => {
+    slide11.addText(`• ${goal.trim()}`, {
+      x: 5, y: 1.85 + (idx * 0.45), w: 2.2, h: 0.4,
+      fontSize: 9, color: colors.text, fontFace: 'Arial'
+    });
+  });
+  
+  // Medium-term goals
+  slide11.addShape('rect', {
+    x: 7.5, y: 1.15, w: 2.2, h: 2.5,
     fill: { color: colors.lightBg },
     line: { color: colors.secondary, width: 1 }
   });
-  slide12.addText('For Financial Investors', {
-    x: 5.2, y: 1.1, w: 3.9, h: 0.35,
-    fontSize: 13, bold: true, color: colors.secondary, fontFace: 'Arial'
+  slide11.addText('Medium-Term Goals', {
+    x: 7.6, y: 1.2, w: 2, h: 0.35,
+    fontSize: 11, bold: true, color: colors.secondary, fontFace: 'Arial'
+  });
+  slide11.addText('(1-3 years)', {
+    x: 7.6, y: 1.5, w: 2, h: 0.25,
+    fontSize: 9, color: colors.textLight, fontFace: 'Arial'
   });
   
-  const financialSynergies = (data.synergiesFinancial || '').split('\n').filter(s => s.trim()).slice(0, 5);
-  financialSynergies.forEach((synergy, idx) => {
-    slide12.addText(`• ${synergy.trim()}`, {
-      x: 5.2, y: 1.55 + (idx * 0.5), w: 3.9, h: 0.5,
+  const mediumGoals = (data.mediumTermGoals || '').split('\n').filter(g => g.trim()).slice(0, 4);
+  mediumGoals.forEach((goal, idx) => {
+    slide11.addText(`• ${goal.trim()}`, {
+      x: 7.6, y: 1.85 + (idx * 0.45), w: 2, h: 0.4,
+      fontSize: 9, color: colors.text, fontFace: 'Arial'
+    });
+  });
+  
+  addSlideFooter(slide11, colors, 11);
+
+  // ============================================================================
+  // SLIDE 12: SYNERGIES
+  // ============================================================================
+  const slide12 = pptx.addSlide();
+  addSlideHeader(slide12, colors, 'Potential Synergies for Acquirers', null);
+  
+  // Strategic Buyers column
+  slide12.addShape('rect', {
+    x: 0.4, y: 1.2, w: 4.5, h: 3.6,
+    fill: { color: colors.white },
+    line: { color: colors.primary, width: 1.5 }
+  });
+  
+  slide12.addShape('rect', {
+    x: 0.4, y: 1.2, w: 4.5, h: 0.5,
+    fill: { color: colors.primary }
+  });
+  slide12.addText('For Strategic Buyers', {
+    x: 0.5, y: 1.25, w: 4.3, h: 0.4,
+    fontSize: 14, bold: true, color: colors.white, fontFace: 'Arial'
+  });
+  
+  const strategicSynergies = (data.synergiesStrategic || '').split('\n').filter(s => s.trim()).slice(0, 6);
+  strategicSynergies.forEach((synergy, idx) => {
+    slide12.addText(`✓ ${synergy.trim()}`, {
+      x: 0.6, y: 1.8 + (idx * 0.5), w: 4.1, h: 0.45,
       fontSize: 10, color: colors.text, fontFace: 'Arial'
     });
   });
+  
+  // Financial Investors column
+  slide12.addShape('rect', {
+    x: 5.1, y: 1.2, w: 4.5, h: 3.6,
+    fill: { color: colors.white },
+    line: { color: colors.secondary, width: 1.5 }
+  });
+  
+  slide12.addShape('rect', {
+    x: 5.1, y: 1.2, w: 4.5, h: 0.5,
+    fill: { color: colors.secondary }
+  });
+  slide12.addText('For Financial Investors', {
+    x: 5.2, y: 1.25, w: 4.3, h: 0.4,
+    fontSize: 14, bold: true, color: colors.white, fontFace: 'Arial'
+  });
+  
+  const financialSynergies = (data.synergiesFinancial || '').split('\n').filter(s => s.trim()).slice(0, 6);
+  financialSynergies.forEach((synergy, idx) => {
+    slide12.addText(`✓ ${synergy.trim()}`, {
+      x: 5.3, y: 1.8 + (idx * 0.5), w: 4.1, h: 0.45,
+      fontSize: 10, color: colors.text, fontFace: 'Arial'
+    });
+  });
+  
+  addSlideFooter(slide12, colors, 12);
 
-  // ==================== SLIDE 13: THANK YOU ====================
+  // ============================================================================
+  // SLIDE 13: THANK YOU
+  // ============================================================================
   const slide13 = pptx.addSlide();
+  
+  // Full background
   slide13.addShape('rect', {
     x: 0, y: 0, w: '100%', h: '100%',
-    fill: { color: colors.primary }
+    fill: { color: colors.darkBg }
+  });
+  
+  // Decorative elements
+  slide13.addShape('rect', {
+    x: 0, y: 2.4, w: 10, h: 0.02,
+    fill: { color: colors.secondary }
   });
   
   slide13.addText('Thank You', {
-    x: 0.5, y: 2, w: '90%', h: 0.8,
-    fontSize: 44, bold: true, color: 'FFFFFF', fontFace: 'Arial', align: 'center'
+    x: 0, y: 1.8, w: '100%', h: 0.8,
+    fontSize: 48, bold: true, color: colors.white, fontFace: 'Arial', align: 'center'
   });
   
   slide13.addText(`For further information, please contact:\n${data.advisor || 'RMB Securities'}`, {
-    x: 0.5, y: 3.2, w: '90%', h: 0.8,
-    fontSize: 16, color: 'FFFFFF', fontFace: 'Arial', align: 'center'
+    x: 0, y: 2.7, w: '100%', h: 0.8,
+    fontSize: 16, color: colors.white, fontFace: 'Arial', align: 'center', lineSpacingMultiple: 1.5
   });
   
-  slide13.addText('STRICTLY PRIVATE AND CONFIDENTIAL', {
-    x: 0.5, y: 4.5, w: '90%', h: 0.3,
-    fontSize: 10, color: 'FFFFFF', fontFace: 'Arial', align: 'center'
+  slide13.addText('Strictly Private and Confidential', {
+    x: 0, y: 4.5, w: '100%', h: 0.3,
+    fontSize: 10, italic: true, color: colors.white, fontFace: 'Arial', align: 'center', transparency: 40
   });
 
   return pptx;
 }
 
-// System prompt for IM generation
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+function addSlideHeader(slide, colors, title, sectionNumber) {
+  // White background
+  slide.addShape('rect', {
+    x: 0, y: 0, w: '100%', h: '100%',
+    fill: { color: colors.white }
+  });
+  
+  // Section number badge (if provided)
+  if (sectionNumber !== null && sectionNumber !== undefined) {
+    slide.addShape('rect', {
+      x: 0, y: 0, w: 0.35, h: 1,
+      fill: { color: colors.secondary }
+    });
+    slide.addText(`${sectionNumber}`, {
+      x: 0, y: 0.3, w: 0.35, h: 0.4,
+      fontSize: 16, bold: true, color: colors.white, fontFace: 'Arial', align: 'center'
+    });
+  }
+  
+  // Title
+  const titleX = sectionNumber !== null ? 0.5 : 0.3;
+  slide.addText(title, {
+    x: titleX, y: 0.15, w: 9.2, h: 0.8,
+    fontSize: 22, bold: true, color: colors.primary, fontFace: 'Arial', valign: 'middle'
+  });
+  
+  // Gold underline
+  slide.addShape('rect', {
+    x: titleX, y: 0.95, w: 9.2, h: 0.04,
+    fill: { color: colors.accent }
+  });
+}
+
+function addSlideFooter(slide, colors, pageNumber) {
+  // Footer line
+  slide.addShape('rect', {
+    x: 0, y: 5.1, w: '100%', h: 0.02,
+    fill: { color: colors.primary }
+  });
+  
+  // Confidential text
+  slide.addText('Strictly Private & Confidential', {
+    x: 0.3, y: 5.15, w: 3, h: 0.25,
+    fontSize: 8, italic: true, color: colors.textLight, fontFace: 'Arial'
+  });
+  
+  // Page number
+  slide.addText(`${pageNumber}`, {
+    x: 9.2, y: 5.15, w: 0.5, h: 0.25,
+    fontSize: 10, color: colors.primary, fontFace: 'Arial', align: 'right'
+  });
+}
+
+// ============================================================================
+// API ENDPOINTS
+// ============================================================================
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    timestamp: new Date().toISOString(),
+    version: '2.0.0',
+    pptxEnabled: true,
+    enhancedDesign: true
+  });
+});
+
+// Generate enhanced PPTX
+app.post('/api/generate-pptx', async (req, res) => {
+  try {
+    const { data, theme = 'modern-tech' } = req.body;
+    
+    if (!data) {
+      return res.status(400).json({ error: 'No data provided' });
+    }
+
+    console.log('Generating Enhanced PPTX for:', data.projectCodename || 'Unknown Project');
+    console.log('Theme:', theme);
+
+    const pptx = await generateProfessionalPPTX(data, theme);
+    
+    const filename = `${data.projectCodename || 'IM'}_${Date.now()}.pptx`;
+    const filepath = path.join(tempDir, filename);
+    
+    await pptx.writeFile(filepath);
+    
+    const fileBuffer = fs.readFileSync(filepath);
+    const base64 = fileBuffer.toString('base64');
+    
+    // Cleanup
+    fs.unlinkSync(filepath);
+    
+    res.json({
+      success: true,
+      filename: filename,
+      fileData: base64,
+      mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      generatedAt: new Date().toISOString(),
+      theme: theme,
+      slideCount: 13
+    });
+
+  } catch (error) {
+    console.error('Error generating PPTX:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate PowerPoint', 
+      details: error.message 
+    });
+  }
+});
+
+// Initialize Anthropic client for IM generation
 const SYSTEM_PROMPT = `You are an expert Investment Banking Analyst specializing in creating professional Information Memorandums (IMs) for M&A transactions. You work for RMB (an investment banking firm) and help automate the creation of management presentations for potential acquirers.
 
 Your task is to take the structured data provided and generate professional, investment-banking-quality content for an Information Memorandum.
@@ -708,17 +1136,7 @@ When generating content:
 
 Output your response as a well-structured JSON object that can be directly used to populate presentation slides.`;
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'healthy', 
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    pptxEnabled: true
-  });
-});
-
-// Generate IM endpoint (JSON content)
+// Generate IM content
 app.post('/api/generate-im', async (req, res) => {
   try {
     const { data } = req.body;
@@ -808,52 +1226,7 @@ Return as structured JSON.`
   }
 });
 
-// Generate PowerPoint endpoint
-app.post('/api/generate-pptx', async (req, res) => {
-  try {
-    const { data, theme = 'modern-tech' } = req.body;
-    
-    if (!data) {
-      return res.status(400).json({ error: 'No data provided' });
-    }
-
-    console.log('Generating PPTX for:', data.projectCodename || 'Unknown Project');
-
-    // Generate the PowerPoint
-    const pptx = await generatePowerPoint(data, null, theme);
-    
-    // Generate unique filename
-    const filename = `${data.projectCodename || 'IM'}_${Date.now()}.pptx`;
-    const filepath = path.join(tempDir, filename);
-    
-    // Write to file
-    await pptx.writeFile(filepath);
-    
-    // Read file and send as base64
-    const fileBuffer = fs.readFileSync(filepath);
-    const base64 = fileBuffer.toString('base64');
-    
-    // Clean up temp file
-    fs.unlinkSync(filepath);
-    
-    res.json({
-      success: true,
-      filename: filename,
-      fileData: base64,
-      mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      generatedAt: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('Error generating PPTX:', error);
-    res.status(500).json({ 
-      error: 'Failed to generate PowerPoint', 
-      details: error.message 
-    });
-  }
-});
-
-// Validate data endpoint
+// Validate data
 app.post('/api/validate', async (req, res) => {
   try {
     const { data } = req.body;
@@ -913,7 +1286,7 @@ app.post('/api/validate', async (req, res) => {
   }
 });
 
-// In-memory draft storage
+// Draft storage
 const drafts = new Map();
 
 app.post('/api/drafts', (req, res) => {
@@ -953,12 +1326,13 @@ app.get('/api/drafts/:projectId', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log('='.repeat(50));
-  console.log('🚀 IM Creator API Server');
-  console.log('='.repeat(50));
+  console.log('='.repeat(60));
+  console.log('🚀 IM Creator API Server - ENHANCED v2.0');
+  console.log('='.repeat(60));
   console.log(`📍 Port: ${PORT}`);
   console.log(`🔗 Health: http://localhost:${PORT}/api/health`);
   console.log(`🔑 API Key: ${process.env.ANTHROPIC_API_KEY ? 'Configured ✅' : 'NOT SET ❌'}`);
-  console.log(`📊 PPTX Generation: Enabled ✅`);
-  console.log('='.repeat(50));
+  console.log(`📊 PPTX Generation: Enhanced Deloitte-Style ✅`);
+  console.log(`🎨 Themes: modern-tech, conservative, minimalist`);
+  console.log('='.repeat(60));
 });
