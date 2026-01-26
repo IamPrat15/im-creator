@@ -1,5 +1,5 @@
 // Enhanced IM Creator Server with Professional PPTX Generation
-// Uses html2pptx for high-quality Deloitte-style presentations
+// Uses html2pptx for high-quality presentations
 
 const express = require('express');
 const cors = require('cors');
@@ -32,11 +32,11 @@ const anthropic = new Anthropic({
 });
 
 // ============================================================================
-// PROFESSIONAL COLOR THEMES (Deloitte-inspired)
+// PROFESSIONAL COLOR THEMES
 // ============================================================================
 const THEMES = {
   'modern-tech': {
-    primary: '2B579A',      // Deep blue (like Deloitte)
+    primary: '2B579A',      // Deep blue
     secondary: '86BC25',    // Green accent
     accent: 'FFC72C',       // Gold/Yellow for highlights
     text: '333333',         // Dark gray text
@@ -1332,7 +1332,7 @@ app.listen(PORT, () => {
   console.log(`📍 Port: ${PORT}`);
   console.log(`🔗 Health: http://localhost:${PORT}/api/health`);
   console.log(`🔑 API Key: ${process.env.ANTHROPIC_API_KEY ? 'Configured ✅' : 'NOT SET ❌'}`);
-  console.log(`📊 PPTX Generation: Enhanced Deloitte-Style ✅`);
+  console.log(`📊 PPTX Generation ✅`);
   console.log(`🎨 Themes: modern-tech, conservative, minimalist`);
   console.log('='.repeat(60));
 });
