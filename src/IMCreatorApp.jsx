@@ -145,7 +145,7 @@ const defaultQuestionnaire = {
           { value: 'synergy', label: 'Synergy Focus - Emphasize acquisition benefits for buyers' }
         ], helpText: 'Select which content variants to include in the presentation', order: 1 },
         { id: 'templateStyle', type: 'select', label: 'Presentation Template', required: true, options: [
-          { value: 'modern-tech', label: 'Modern Tech (Blue/Green - Deloitte Style)' },
+          { value: 'modern-tech', label: 'Modern Tech (Blue/Green)' },
           { value: 'conservative', label: 'Conservative Banking (Navy/Gold)' },
           { value: 'minimalist', label: 'Minimalist (Black/White)' }
         ], defaultValue: 'modern-tech', helpText: 'Professional template matching your brand', order: 2 },
