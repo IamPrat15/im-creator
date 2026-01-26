@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { generateIM, generatePPTX, saveDraft, checkHealth, downloadBase64File } from './api';
 
+// ============================================================================
+// IMCreatorApp - Main Application Component
+// ============================================================================
+// Props:
+//   user: { username, method, loginTime } - Current logged in user
+//   onLogout: () => void - Function to handle logout
+// ============================================================================
+
 const defaultQuestionnaire = {
   phases: [
     {
@@ -145,7 +153,7 @@ const defaultQuestionnaire = {
           { value: 'synergy', label: 'Synergy Focus - Emphasize acquisition benefits for buyers' }
         ], helpText: 'Select which content variants to include in the presentation', order: 1 },
         { id: 'templateStyle', type: 'select', label: 'Presentation Template', required: true, options: [
-          { value: 'modern-tech', label: 'Modern Tech (Blue/Green)' },
+          { value: 'modern-tech', label: 'Modern Tech (Blue/Green - Deloitte Style)' },
           { value: 'conservative', label: 'Conservative Banking (Navy/Gold)' },
           { value: 'minimalist', label: 'Minimalist (Black/White)' },
           { value: 'acc-brand', label: 'ACC Brand (Burgundy/Maroon)' }
@@ -183,13 +191,14 @@ const THEME = {
   border: '#E2E8F0',         // Border color
 };
 
-export default function IMCreatorApp() {
+export default function IMCreatorApp({ user, onLogout }) {
   const [questionnaire, setQuestionnaire] = useState(defaultQuestionnaire);
   const [currentPhase, setCurrentPhase] = useState(0);
   const [formData, setFormData] = useState({});
   const [completedPhases, setCompletedPhases] = useState([]);
   const [errors, setErrors] = useState({});
   const [showConfig, setShowConfig] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [showAddQ, setShowAddQ] = useState(false);
   const [newQ, setNewQ] = useState({ type: 'text', label: '', required: false, placeholder: '' });
   const [showReport, setShowReport] = useState(false);
@@ -617,6 +626,102 @@ export default function IMCreatorApp() {
             </svg>
             Configure
           </button>
+
+          {/* User Menu */}
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '6px 12px 6px 6px',
+                backgroundColor: THEME.background,
+                border: `1px solid ${THEME.border}`,
+                borderRadius: '24px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <div style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                backgroundColor: THEME.primary,
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '14px',
+                fontWeight: '600'
+              }}>
+                {(user?.username || 'U').charAt(0).toUpperCase()}
+              </div>
+              <span style={{ fontSize: '14px', fontWeight: '500', color: THEME.text }}>
+                {user?.username || 'User'}
+              </span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={THEME.textLight} strokeWidth="2">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+
+            {/* Dropdown Menu */}
+            {showUserMenu && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                right: 0,
+                marginTop: '8px',
+                backgroundColor: THEME.surface,
+                borderRadius: '12px',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                border: `1px solid ${THEME.border}`,
+                minWidth: '200px',
+                overflow: 'hidden',
+                zIndex: 1000
+              }}>
+                <div style={{
+                  padding: '16px',
+                  borderBottom: `1px solid ${THEME.border}`
+                }}>
+                  <div style={{ fontSize: '14px', fontWeight: '600', color: THEME.text }}>
+                    {user?.username || 'User'}
+                  </div>
+                  <div style={{ fontSize: '12px', color: THEME.textLight, marginTop: '2px' }}>
+                    Logged in via {user?.method === 'office365' ? 'Office 365' : 'Credentials'}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    onLogout && onLogout();
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    color: THEME.accentRed,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    transition: 'background-color 0.15s ease'
+                  }}
+                  onMouseEnter={e => e.target.style.backgroundColor = `${THEME.accentRed}10`}
+                  onMouseLeave={e => e.target.style.backgroundColor = 'transparent'}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                  </svg>
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
