@@ -153,11 +153,11 @@ const defaultQuestionnaire = {
           { value: 'synergy', label: 'Synergy Focus - Emphasize acquisition benefits for buyers' }
         ], helpText: 'Select which content variants to include in the presentation', order: 1 },
         { id: 'templateStyle', type: 'select', label: 'Presentation Template', required: true, options: [
-          { value: 'modern-tech', label: 'Modern Tech (Blue/Green - Deloitte Style)' },
-          { value: 'conservative', label: 'Conservative Banking (Navy/Gold)' },
-          { value: 'minimalist', label: 'Minimalist (Black/White)' },
-          { value: 'acc-brand', label: 'ACC Brand (Burgundy/Maroon)' }
-        ], defaultValue: 'modern-tech', helpText: 'Professional template matching your brand', order: 2 },
+          { value: 'modern-tech', label: 'Modern Blue (Blue/Teal Gradient)' },
+          { value: 'conservative', label: 'Corporate Navy (Navy/Gold Classic)' },
+          { value: 'minimalist', label: 'Clean Minimal (Black/White)' },
+          { value: 'acc-brand', label: 'Executive Burgundy (Burgundy/Maroon)' }
+        ], defaultValue: 'modern-tech', helpText: 'Professional template for your presentation', order: 2 },
         { id: 'includeAppendix', type: 'multiselect', label: 'Include in Appendix', options: [
           { value: 'team-bios', label: 'Detailed Team Bios' },
           { value: 'client-list', label: 'Full Client List' },
