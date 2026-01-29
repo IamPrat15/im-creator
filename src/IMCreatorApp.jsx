@@ -24,7 +24,7 @@ const defaultQuestionnaire = {
           { value: 'cim', label: 'Confidential Information Memorandum' },
           { value: 'teaser', label: 'Teaser Document' }
         ], order: 3 },
-        { id: 'advisor', type: 'text', label: 'Sell-Side Advisor', defaultValue: 'RMB Securities', order: 4 },
+        { id: 'advisor', type: 'text', label: 'Sell-Side Advisor', placeholder: 'e.g., Goldman Sachs, Morgan Stanley', order: 4 },
         { id: 'presentationDate', type: 'date', label: 'Presentation Date', required: true, order: 5 },
         { id: 'targetBuyerType', type: 'multiselect', label: 'Target Buyer Type', required: true, options: [
           { value: 'strategic', label: 'Strategic Buyer' },
@@ -57,8 +57,8 @@ const defaultQuestionnaire = {
         { id: 'founderTitle', type: 'text', label: 'Founder Title', placeholder: 'Founder & CEO', required: true, order: 2 },
         { id: 'founderExperience', type: 'number', label: 'Years of Experience', required: true, order: 3 },
         { id: 'founderEducation', type: 'textarea', label: 'Education', placeholder: 'MBA - JBIMS\nB.E. - VJTI', order: 4 },
-        { id: 'previousCompanies', type: 'textarea', label: 'Previous Companies', placeholder: 'Company | Role | Duration', helpText: 'Notable prior experience', order: 5 },
-        { id: 'leadershipTeam', type: 'textarea', label: 'Leadership Team', placeholder: 'Name | Title | Department', helpText: 'Key management team members', order: 6 }
+        { id: 'previousCompanies', type: 'textarea', label: 'Previous Companies', placeholder: 'Company | Role | Duration', helpText: 'Format: Company | Role | Duration', order: 5 },
+        { id: 'leadershipTeam', type: 'textarea', label: 'Leadership Team', placeholder: 'Name | Title | Department', helpText: 'Format: Name | Title | Department', order: 6 }
       ]
     },
     {
@@ -69,7 +69,7 @@ const defaultQuestionnaire = {
       questions: [
         { id: 'serviceLines', type: 'textarea', label: 'Service Lines', placeholder: 'Cloud & Automation | 39% | AWS migration, DevOps, Infrastructure', required: true, helpText: 'Format: Name | Revenue % | Description', order: 1 },
         { id: 'products', type: 'textarea', label: 'Proprietary Products', placeholder: 'AI Agent Studio | Platform for AI agents | 500+ templates', helpText: 'Format: Name | Description | Key metric', order: 2 },
-        { id: 'techPartnerships', type: 'textarea', label: 'Technology Partnerships', placeholder: 'AWS Advanced Tier Partner\nDatabricks Partner', order: 3 },
+        { id: 'techPartnerships', type: 'textarea', label: 'Technology Partnerships', placeholder: 'AWS Advanced Tier Partner\nDatabricks Partner', helpText: 'Format: Partnership Name (one per line)', order: 3 },
         { id: 'certifications', type: 'textarea', label: 'Certifications & Awards', placeholder: 'AWS Financial Services Competency\nBest BFSI Partner 2024', order: 4 }
       ]
     },
@@ -88,7 +88,7 @@ const defaultQuestionnaire = {
           { value: 'media', label: 'Media & Entertainment' }
         ], order: 1 },
         { id: 'primaryVerticalPct', type: 'number', label: 'Primary Vertical Revenue %', required: true, order: 2 },
-        { id: 'otherVerticals', type: 'textarea', label: 'Other Verticals', placeholder: 'FinTech | 14%\nMedia | 11%', order: 3 },
+        { id: 'otherVerticals', type: 'textarea', label: 'Other Verticals', placeholder: 'FinTech | 14%\nMedia | 11%', helpText: 'Format: Vertical Name | Revenue %', order: 3 },
         { id: 'topClients', type: 'textarea', label: 'Top Clients', placeholder: 'Axis Bank | BFSI | 2015\nHDFC Bank | BFSI | 2018', required: true, helpText: 'Format: Client Name | Vertical | Year Started', order: 4 },
         { id: 'top10Concentration', type: 'number', label: 'Top 10 Client Concentration %', required: true, order: 5 },
         { id: 'netRetention', type: 'number', label: 'Net Revenue Retention %', helpText: 'NRR indicates revenue expansion from existing clients', order: 6 }
@@ -107,7 +107,7 @@ const defaultQuestionnaire = {
         { id: 'revenueFY27P', type: 'number', label: 'Revenue FY27P (Cr)', order: 5 },
         { id: 'revenueFY28P', type: 'number', label: 'Revenue FY28P (Cr)', order: 6 },
         { id: 'ebitdaMarginFY25', type: 'number', label: 'EBITDA Margin FY25 %', required: true, order: 7 },
-        { id: 'revenueByService', type: 'textarea', label: 'Revenue by Service', placeholder: 'Cloud & Automation | 39%\nManaged Services | 31%', order: 8 }
+        { id: 'revenueByService', type: 'textarea', label: 'Revenue by Service', placeholder: 'Cloud & Automation | 39%\nManaged Services | 31%', helpText: 'Format: Service Name | Revenue %', order: 8 }
       ]
     },
     {
@@ -133,7 +133,7 @@ const defaultQuestionnaire = {
       description: 'Future plans & competitive position',
       questions: [
         { id: 'growthDrivers', type: 'textarea', label: 'Key Growth Drivers', required: true, placeholder: 'AI adoption in enterprise\nCloud migration demand\nExpanding BFSI relationships', order: 1 },
-        { id: 'competitiveAdvantages', type: 'textarea', label: 'Competitive Advantages', required: true, helpText: 'Minimum 5 advantages (one per line)', placeholder: 'Deep AWS expertise | Only 8 companies in India with this certification\nStrong BFSI relationships | 10+ year partnerships with leading banks', order: 2 },
+        { id: 'competitiveAdvantages', type: 'textarea', label: 'Competitive Advantages', required: true, helpText: 'Format: Advantage Title | Supporting Detail (min 5)', placeholder: 'Deep AWS expertise | Only 8 companies in India with this certification\nStrong BFSI relationships | 10+ year partnerships with leading banks', order: 2 },
         { id: 'shortTermGoals', type: 'textarea', label: 'Short-Term Goals (0-12 months)', placeholder: 'Launch AI Practice\nExpand Bangalore team', order: 3 },
         { id: 'mediumTermGoals', type: 'textarea', label: 'Medium-Term Goals (1-3 years)', placeholder: 'Enter international markets\nAchieve ₹500 Cr revenue', order: 4 },
         { id: 'synergiesStrategic', type: 'textarea', label: 'Synergies for Strategic Buyers', placeholder: 'Access to BFSI client base\nAWS competencies enhancement\nIndian market expansion', order: 5 },

@@ -183,29 +183,150 @@ const THEME_MAP = {
 // ============================================================================
 // TEXT UTILITIES (Issue #4 - Prevent overflow)
 // ============================================================================
-function truncateText(text, maxLength, suffix = '...') {
-  if (!text || text.length <= maxLength) return text || '';
-  return text.substring(0, maxLength - suffix.length).trim() + suffix;
+// ============================================================================
+// SMART TEXT HANDLING - NO ELLIPSIS (Issue #1 Fix)
+// ============================================================================
+// Instead of truncating with "...", these functions:
+// 1. Try to condense/abbreviate text intelligently
+// 2. If condensing isn't possible, keep full text (no truncation)
+// 3. Never leave incomplete sentences
+
+// Common abbreviations for condensing text
+const ABBREVIATIONS = {
+  'and': '&',
+  'with': 'w/',
+  'without': 'w/o',
+  'through': 'thru',
+  'information': 'info',
+  'technology': 'tech',
+  'technologies': 'tech',
+  'management': 'mgmt',
+  'development': 'dev',
+  'application': 'app',
+  'applications': 'apps',
+  'organization': 'org',
+  'organizations': 'orgs',
+  'international': 'intl',
+  'infrastructure': 'infra',
+  'implementation': 'impl',
+  'transformation': 'transform',
+  'approximately': '~',
+  'percentage': '%',
+  'percent': '%',
+  'number': '#',
+  'customer': 'client',
+  'customers': 'clients',
+  'enterprise': 'enterprise',
+  'solutions': 'solutions',
+  'services': 'svcs',
+  'operations': 'ops',
+  'operational': 'ops',
+  'processing': 'proc',
+  'automation': 'automation',
+  'integration': 'integration',
+  'performance': 'perf',
+  'reduction': 'reduction',
+  'improvement': 'improvement',
+  'acquisition': 'acq',
+  'Southeast Asia': 'SEA',
+  'Middle East': 'ME',
+  'United States': 'US',
+  'United Kingdom': 'UK'
+};
+
+// Condense text using abbreviations
+function condenseText(text) {
+  if (!text) return '';
+  let result = text;
+  
+  // Apply abbreviations (case-insensitive)
+  for (const [full, abbrev] of Object.entries(ABBREVIATIONS)) {
+    const regex = new RegExp(`\\b${full}\\b`, 'gi');
+    result = result.replace(regex, abbrev);
+  }
+  
+  // Remove redundant phrases
+  result = result.replace(/\s+/g, ' ').trim();
+  
+  return result;
 }
 
+// Smart truncate: condense first, then truncate at sentence/clause boundary if needed
+function truncateText(text, maxLength, allowTruncate = false) {
+  if (!text) return '';
+  if (text.length <= maxLength) return text;
+  
+  // First try condensing
+  let condensed = condenseText(text);
+  if (condensed.length <= maxLength) return condensed;
+  
+  // If still too long and truncation allowed, find a natural break point
+  if (allowTruncate) {
+    // Try to break at sentence boundary
+    const sentences = condensed.match(/[^.!?]+[.!?]+/g) || [condensed];
+    let result = '';
+    for (const sentence of sentences) {
+      if ((result + sentence).length <= maxLength) {
+        result += sentence;
+      } else {
+        break;
+      }
+    }
+    if (result.length > 0) return result.trim();
+    
+    // Try to break at comma or semicolon
+    const clauses = condensed.split(/[,;]/);
+    result = '';
+    for (let i = 0; i < clauses.length; i++) {
+      const clause = clauses[i] + (i < clauses.length - 1 ? '' : '');
+      if ((result + clause).length <= maxLength - 1) {
+        result += clause + (i < clauses.length - 1 ? ',' : '');
+      } else {
+        break;
+      }
+    }
+    if (result.length > 10) return result.trim().replace(/,$/, '');
+  }
+  
+  // If we can't shorten meaningfully, return full condensed text
+  // Better to have full text than incomplete sentence
+  return condensed;
+}
+
+// Truncate to specific number of lines
 function truncateLines(text, maxLines, maxCharsPerLine = 80) {
   if (!text) return '';
   const lines = text.split('\n').filter(l => l.trim());
-  const truncated = lines.slice(0, maxLines).map(l => truncateText(l, maxCharsPerLine));
-  return truncated.join('\n');
+  const processed = lines.slice(0, maxLines).map(l => truncateText(l, maxCharsPerLine, false));
+  return processed.join('\n');
 }
 
+// Smart truncate for longer text blocks - preserves complete sentences
 function smartTruncate(text, maxChars, preserveWords = true) {
-  if (!text || text.length <= maxChars) return text || '';
-  if (!preserveWords) return text.substring(0, maxChars - 3) + '...';
+  if (!text) return '';
+  if (text.length <= maxChars) return text;
   
-  const words = text.split(' ');
-  let result = '';
-  for (const word of words) {
-    if ((result + ' ' + word).trim().length > maxChars - 3) break;
-    result = (result + ' ' + word).trim();
+  // First condense
+  let condensed = condenseText(text);
+  if (condensed.length <= maxChars) return condensed;
+  
+  // Try to find sentence boundary
+  const sentences = condensed.match(/[^.!?]+[.!?]+/g) || [];
+  if (sentences.length > 0) {
+    let result = '';
+    for (const sentence of sentences) {
+      if ((result + sentence).length <= maxChars) {
+        result += sentence;
+      } else {
+        break;
+      }
+    }
+    if (result.length > 0) return result.trim();
   }
-  return result + '...';
+  
+  // If no good sentence boundary, keep full condensed text
+  // (better than incomplete sentence with "...")
+  return condensed;
 }
 
 // ============================================================================
@@ -397,7 +518,7 @@ async function generateProfessionalPPTX(data, theme = 'modern-blue', options = {
     fontFace: 'Arial', transparency: 30
   });
   
-  slide1.addText(data.advisor || 'Investment Bank', {
+  slide1.addText(data.advisor || 'Your Advisor', {
     x: 0.5, y: 4.4, w: 4, h: 0.35,
     fontSize: 12, color: colors.white,
     fontFace: 'Arial', transparency: 20
@@ -437,7 +558,8 @@ This document does not constitute an offer or agreement between ${data.advisor |
   const slide3 = pptx.addSlide();
   
   // Title without section number for cleaner look
-  addSlideHeader(slide3, colors, truncateText(data.companyDescription || 'A Leading Digital Transformation Partner', 80), null);
+  // Use full company description - the header box is wide enough (9.2 inches)
+  addSlideHeader(slide3, colors, truncateText(data.companyDescription || 'A Leading Digital Transformation Partner', 120), null);
   
   // Left column - Key stats
   const stats = [
@@ -631,16 +753,16 @@ This document does not constitute an offer or agreement between ${data.advisor |
   // Parse education
   const education = (data.founderEducation || 'MBA - IIM Ahmedabad\nB.Tech - IIT').split('\n').filter(e => e.trim()).slice(0, 2);
   
-  // Generate background points from input data
+  // Generate background points from input data - use concise phrasing
   const backgroundPoints = [
-    `Founded ${data.companyName || 'the Company'} in ${data.foundedYear || '2015'} and leads its strategic direction`,
+    `Founded ${data.companyName || 'the Company'} in ${data.foundedYear || '2015'}; leads strategic direction`,
     `${education[0] || 'MBA from premier institution'}`,
     `${education[1] || 'Engineering background'}`,
-    `${data.founderExperience || 20}+ years in technology and consulting`
+    `${data.founderExperience || 20}+ years in tech & consulting`
   ];
   
   backgroundPoints.forEach((point, idx) => {
-    slide4.addText(`•  ${truncateText(point, 70)}`, {
+    slide4.addText(`•  ${truncateText(point, 85)}`, {
       x: 4.2, y: 1.8 + (idx * 0.5), w: 5.2, h: 0.45,
       fontSize: 10, color: colors.text, fontFace: 'Arial', valign: 'top'
     });
@@ -1018,13 +1140,13 @@ This document does not constitute an offer or agreement between ${data.advisor |
     });
     
     const parts = advantage.split('|').map(p => p.trim());
-    slideAdv.addText(truncateText(parts[0] || advantage, 40), {
+    slideAdv.addText(truncateText(parts[0] || advantage, 55), {
       x: xPos + 0.7, y: yPos + 0.15, w: 3.6, h: 0.35,
       fontSize: 11, bold: true, color: colors.primary, fontFace: 'Arial'
     });
     
     if (parts[1]) {
-      slideAdv.addText(truncateText(parts[1], 60), {
+      slideAdv.addText(truncateText(parts[1], 75), {
         x: xPos + 0.7, y: yPos + 0.55, w: 3.6, h: 0.55,
         fontSize: 9, color: colors.textLight, fontFace: 'Arial', valign: 'top'
       });
@@ -1052,7 +1174,7 @@ This document does not constitute an offer or agreement between ${data.advisor |
       fill: { color: idx % 2 === 0 ? colors.lightBg : colors.white },
       line: { color: colors.border, width: 0.5 }
     });
-    slideGrowth.addText(`${idx + 1}. ${truncateText(driver.trim(), 50)}`, {
+    slideGrowth.addText(`${idx + 1}. ${truncateText(driver.trim(), 60)}`, {
       x: 0.5, y: 1.55 + (idx * 0.55), w: 4, h: 0.45,
       fontSize: 10, color: colors.text, fontFace: 'Arial', valign: 'middle'
     });
@@ -1075,7 +1197,7 @@ This document does not constitute an offer or agreement between ${data.advisor |
   
   const shortGoals = (data.shortTermGoals || '').split('\n').filter(g => g.trim()).slice(0, 4);
   shortGoals.forEach((goal, idx) => {
-    slideGrowth.addText(`• ${truncateText(goal.trim(), 30)}`, {
+    slideGrowth.addText(`• ${truncateText(goal.trim(), 35)}`, {
       x: 5, y: 1.85 + (idx * 0.45), w: 2.2, h: 0.4,
       fontSize: 9, color: colors.text, fontFace: 'Arial'
     });
@@ -1098,7 +1220,7 @@ This document does not constitute an offer or agreement between ${data.advisor |
   
   const mediumGoals = (data.mediumTermGoals || '').split('\n').filter(g => g.trim()).slice(0, 4);
   mediumGoals.forEach((goal, idx) => {
-    slideGrowth.addText(`• ${truncateText(goal.trim(), 28)}`, {
+    slideGrowth.addText(`• ${truncateText(goal.trim(), 32)}`, {
       x: 7.6, y: 1.85 + (idx * 0.45), w: 2, h: 0.4,
       fontSize: 9, color: colors.text, fontFace: 'Arial'
     });
@@ -1135,7 +1257,7 @@ This document does not constitute an offer or agreement between ${data.advisor |
     
     const strategicSynergies = (data.synergiesStrategic || '').split('\n').filter(s => s.trim()).slice(0, 6);
     strategicSynergies.forEach((synergy, idx) => {
-      slideSyn.addText(`✓ ${truncateText(synergy.trim(), showFinancial ? 45 : 90)}`, {
+      slideSyn.addText(`✓ ${truncateText(synergy.trim(), showFinancial ? 52 : 95)}`, {
         x: 0.6, y: 1.8 + (idx * 0.5), w: synWidth - 0.4, h: 0.45,
         fontSize: 10, color: colors.text, fontFace: 'Arial'
       });
@@ -1163,7 +1285,7 @@ This document does not constitute an offer or agreement between ${data.advisor |
     
     const financialSynergies = (data.synergiesFinancial || '').split('\n').filter(s => s.trim()).slice(0, 6);
     financialSynergies.forEach((synergy, idx) => {
-      slideSyn.addText(`✓ ${truncateText(synergy.trim(), showStrategic ? 45 : 90)}`, {
+      slideSyn.addText(`✓ ${truncateText(synergy.trim(), showStrategic ? 52 : 95)}`, {
         x: xStart + 0.2, y: 1.8 + (idx * 0.5), w: synWidth - 0.4, h: 0.45,
         fontSize: 10, color: colors.text, fontFace: 'Arial'
       });
@@ -1235,7 +1357,7 @@ This document does not constitute an offer or agreement between ${data.advisor |
         fill: { color: colors.white },
         line: { color: colors.border, width: 0.5 }
       });
-      slideClients.addText(truncateText(parts[0] || '', 18), {
+      slideClients.addText(truncateText(parts[0] || '', 22), {
         x: 0.4 + (col * 2.4), y: 1.3 + (row * 0.9), w: 2, h: 0.35,
         fontSize: 10, bold: true, color: colors.primary, fontFace: 'Arial'
       });
@@ -1269,7 +1391,7 @@ This document does not constitute an offer or agreement between ${data.advisor |
     fontSize: 48, bold: true, color: colors.white, fontFace: 'Arial', align: 'center'
   });
   
-  slideEnd.addText(`For further information, please contact:\n${data.advisor || 'Investment Bank'}`, {
+  slideEnd.addText(`For further information, please contact:\n${data.advisor || 'Your Advisor'}`, {
     x: 0, y: 2.7, w: '100%', h: 0.8,
     fontSize: 16, color: colors.white, fontFace: 'Arial', align: 'center', lineSpacingMultiple: 1.5
   });
@@ -1387,7 +1509,7 @@ function addCaseStudySlide(slide, colors, pageNumber, caseStudy) {
     x: 3, y: 1.55, w: 0.08, h: 0.04,
     fill: { color: colors.danger }
   });
-  slide.addText(truncateText(caseStudy.challenge || 'Challenge description', 120), {
+  slide.addText(truncateText(caseStudy.challenge || 'Challenge description', 150), {
     x: 3.1, y: 1.65, w: 2.8, h: 1,
     fontSize: 9, color: colors.text, fontFace: 'Arial', valign: 'top'
   });
@@ -1406,7 +1528,7 @@ function addCaseStudySlide(slide, colors, pageNumber, caseStudy) {
     x: 6.2, y: 1.55, w: 0.08, h: 0.04,
     fill: { color: colors.primary }
   });
-  slide.addText(truncateText(caseStudy.solution || 'Solution description', 130), {
+  slide.addText(truncateText(caseStudy.solution || 'Solution description', 160), {
     x: 6.3, y: 1.65, w: 3.1, h: 1,
     fontSize: 9, color: colors.text, fontFace: 'Arial', valign: 'top'
   });
@@ -1431,7 +1553,7 @@ function addCaseStudySlide(slide, colors, pageNumber, caseStudy) {
   results.forEach((result, idx) => {
     const col = idx % 2;
     const row = Math.floor(idx / 2);
-    slide.addText(`✓ ${truncateText(result.trim(), 45)}`, {
+    slide.addText(`✓ ${truncateText(result.trim(), 55)}`, {
       x: 3.1 + (col * 3.2), y: 3.35 + (row * 0.5), w: 3, h: 0.45,
       fontSize: 10, color: colors.success, fontFace: 'Arial'
     });
