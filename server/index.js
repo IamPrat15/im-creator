@@ -1,14 +1,16 @@
-// Enhanced IM Creator Server v3.0 - Complete Fix for All Issues
+// Enhanced IM Creator Server v5.0 - Complete Fix for All Issues
 // Fixes: 
 // 1. Consistent slide numbering
 // 2. All case studies included
 // 3. Proper pie charts with segments
-// 4. Text truncation to prevent overflow
+// 4. Text truncation to prevent overflow (improved - no ellipsis)
 // 5. Generic template names (no company names)
 // 6. Theme colors properly applied
 // 7. Target buyer type affects content
 // 8. Content variants and appendix support
-// 9. Anthropic usage/cost tracking
+// 9. Anthropic usage/cost tracking (enhanced with CSV export)
+// 10. Dynamic revenue chart (only shows years with data)
+// 11. Hide empty sections entirely
 
 const express = require('express');
 const cors = require('cors');
@@ -642,30 +644,56 @@ This document does not constitute an offer or agreement between ${data.advisor |
   });
   
   // Revenue bar chart
-  const revenueData = [
-    { year: 'FY24', value: parseFloat(data.revenueFY24) || 85 },
-    { year: 'FY25', value: parseFloat(data.revenueFY25) || 112 },
-    { year: 'FY26P', value: parseFloat(data.revenueFY26P) || 150 },
-    { year: 'FY27P', value: parseFloat(data.revenueFY27P) || 195 },
-    { year: 'FY28P', value: parseFloat(data.revenueFY28P) || 250 }
-  ];
+  // Build revenue data dynamically - only include years with actual data
+  const revenueData = [];
   
-  const maxRev = Math.max(...revenueData.map(d => d.value));
+  // Required fields (always show if provided)
+  if (data.revenueFY24) revenueData.push({ year: 'FY24', value: parseFloat(data.revenueFY24) });
+  if (data.revenueFY25) revenueData.push({ year: 'FY25', value: parseFloat(data.revenueFY25) });
+  if (data.revenueFY26P) revenueData.push({ year: 'FY26P', value: parseFloat(data.revenueFY26P) });
+  
+  // Optional projected years - only show if user provided values
+  if (data.revenueFY27P && parseFloat(data.revenueFY27P) > 0) {
+    revenueData.push({ year: 'FY27P', value: parseFloat(data.revenueFY27P) });
+  }
+  if (data.revenueFY28P && parseFloat(data.revenueFY28P) > 0) {
+    revenueData.push({ year: 'FY28P', value: parseFloat(data.revenueFY28P) });
+  }
+  
+  // Calculate CAGR dynamically if we have enough data
+  let cagrText = '';
+  if (revenueData.length >= 2) {
+    const firstValue = revenueData[0].value;
+    const lastValue = revenueData[revenueData.length - 1].value;
+    const years = revenueData.length - 1;
+    if (firstValue > 0 && lastValue > firstValue && years > 0) {
+      const cagr = Math.round((Math.pow(lastValue / firstValue, 1 / years) - 1) * 100);
+      cagrText = `CAGR: ~${cagr}%`;
+    }
+  }
+  
+  // Dynamic bar width based on number of data points
+  const barCount = revenueData.length;
+  const chartWidth = 3.0; // Total width for chart area
+  const barWidth = Math.min(0.5, chartWidth / barCount - 0.1);
+  const barGap = (chartWidth - (barWidth * barCount)) / (barCount + 1);
+  
+  const maxRev = Math.max(...revenueData.map(d => d.value), 1);
   revenueData.forEach((rev, idx) => {
     const barHeight = (rev.value / maxRev) * 1.8;
-    const xPos = 6.5 + (idx * 0.6);
+    const xPos = 6.4 + barGap + (idx * (barWidth + barGap));
     const isProjected = rev.year.includes('P');
     
     slide3.addShape('rect', {
-      x: xPos, y: 3.7 - barHeight, w: 0.45, h: barHeight,
+      x: xPos, y: 3.7 - barHeight, w: barWidth, h: barHeight,
       fill: { color: isProjected ? colors.secondary : colors.primary }
     });
     slide3.addText(`${rev.value}`, {
-      x: xPos - 0.1, y: 3.7 - barHeight - 0.25, w: 0.65, h: 0.25,
+      x: xPos - 0.1, y: 3.7 - barHeight - 0.25, w: barWidth + 0.2, h: 0.25,
       fontSize: 8, color: colors.text, fontFace: 'Arial', align: 'center'
     });
     slide3.addText(rev.year, {
-      x: xPos - 0.05, y: 3.75, w: 0.55, h: 0.2,
+      x: xPos - 0.05, y: 3.75, w: barWidth + 0.1, h: 0.2,
       fontSize: 7, color: colors.textLight, fontFace: 'Arial', align: 'center'
     });
   });
@@ -675,15 +703,21 @@ This document does not constitute an offer or agreement between ${data.advisor |
     fontSize: 8, italic: true, color: colors.textLight, fontFace: 'Arial'
   });
   
-  slide3.addText('CAGR: ~30%', {
-    x: 8.2, y: 1.55, w: 1.2, h: 0.2,
-    fontSize: 9, bold: true, color: colors.secondary, fontFace: 'Arial', align: 'right'
-  });
+  // Only show CAGR if we calculated it
+  if (cagrText) {
+    slide3.addText(cagrText, {
+      x: 8.2, y: 1.55, w: 1.2, h: 0.2,
+      fontSize: 9, bold: true, color: colors.secondary, fontFace: 'Arial', align: 'right'
+    });
+  }
   
-  slide3.addText(`EBITDA Margin FY25: ${data.ebitdaMarginFY25 || 22}%`, {
-    x: 6.4, y: 4.1, w: 3.2, h: 0.25,
-    fontSize: 10, bold: true, color: colors.primary, fontFace: 'Arial'
-  });
+  // Only show EBITDA margin if provided
+  if (data.ebitdaMarginFY25) {
+    slide3.addText(`EBITDA Margin FY25: ${data.ebitdaMarginFY25}%`, {
+      x: 6.4, y: 4.1, w: 3.2, h: 0.25,
+      fontSize: 10, bold: true, color: colors.primary, fontFace: 'Arial'
+    });
+  }
   
   // Platform capabilities
   slide3.addText('Platform Capabilities', {
@@ -750,16 +784,15 @@ This document does not constitute an offer or agreement between ${data.advisor |
     fill: { color: colors.primary }
   });
   
-  // Parse education
-  const education = (data.founderEducation || 'MBA - IIM Ahmedabad\nB.Tech - IIT').split('\n').filter(e => e.trim()).slice(0, 2);
+  // Parse education - only include if provided
+  const education = (data.founderEducation || '').split('\n').filter(e => e.trim()).slice(0, 2);
   
-  // Generate background points from input data - use concise phrasing
-  const backgroundPoints = [
-    `Founded ${data.companyName || 'the Company'} in ${data.foundedYear || '2015'}; leads strategic direction`,
-    `${education[0] || 'MBA from premier institution'}`,
-    `${education[1] || 'Engineering background'}`,
-    `${data.founderExperience || 20}+ years in tech & consulting`
-  ];
+  // Generate background points from input data - only include real data
+  const backgroundPoints = [];
+  backgroundPoints.push(`Founded ${data.companyName || 'the Company'} in ${data.foundedYear || '2015'}; leads strategic direction`);
+  if (education[0]) backgroundPoints.push(education[0]);
+  if (education[1]) backgroundPoints.push(education[1]);
+  if (data.founderExperience) backgroundPoints.push(`${data.founderExperience}+ years in tech & consulting`);
   
   backgroundPoints.forEach((point, idx) => {
     slide4.addText(`•  ${truncateText(point, 85)}`, {
@@ -768,30 +801,28 @@ This document does not constitute an offer or agreement between ${data.advisor |
     });
   });
   
-  // Previous experience
-  slide4.addText('Previous Experience', {
-    x: 4.1, y: 3.7, w: 5.3, h: 0.25,
-    fontSize: 10, italic: true, color: colors.textLight, fontFace: 'Arial'
-  });
-  
-  // Parse previous companies
+  // Previous experience - ONLY show if user provided data
   const prevCompanies = (data.previousCompanies || '').split('\n').filter(c => c.trim()).slice(0, 4);
-  const companies = prevCompanies.map(c => c.split('|')[0]?.trim() || c.trim()).slice(0, 4);
-  while (companies.length < 4) {
-    companies.push(['Previous Co.', 'Company', 'Firm', 'Corp'][companies.length]);
-  }
   
-  companies.forEach((company, idx) => {
-    slide4.addShape('rect', {
-      x: 4.2 + (idx * 1.3), y: 4.0, w: 1.15, h: 0.45,
-      fill: { color: colors.white },
-      line: { color: colors.border, width: 0.5 }
+  if (prevCompanies.length > 0) {
+    slide4.addText('Previous Experience', {
+      x: 4.1, y: 3.7, w: 5.3, h: 0.25,
+      fontSize: 10, italic: true, color: colors.textLight, fontFace: 'Arial'
     });
-    slide4.addText(truncateText(company, 12), {
-      x: 4.2 + (idx * 1.3), y: 4.0, w: 1.15, h: 0.45,
-      fontSize: 8, color: colors.text, fontFace: 'Arial', align: 'center', valign: 'middle'
+    
+    const companies = prevCompanies.map(c => c.split('|')[0]?.trim() || c.trim());
+    companies.forEach((company, idx) => {
+      slide4.addShape('rect', {
+        x: 4.2 + (idx * 1.3), y: 4.0, w: 1.15, h: 0.45,
+        fill: { color: colors.white },
+        line: { color: colors.border, width: 0.5 }
+      });
+      slide4.addText(truncateText(company, 12), {
+        x: 4.2 + (idx * 1.3), y: 4.0, w: 1.15, h: 0.45,
+        fontSize: 8, color: colors.text, fontFace: 'Arial', align: 'center', valign: 'middle'
+      });
     });
-  });
+  }
   
   addSlideFooter(slide4, colors, slideNumber);
 
@@ -1608,13 +1639,81 @@ app.get('/api/health', (req, res) => {
 
 // Usage statistics endpoint (Issue #9)
 app.get('/api/usage', (req, res) => {
+  // Calculate daily/weekly/monthly aggregates
+  const now = new Date();
+  const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
+  const oneWeekAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+  const oneMonthAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+  
+  const dailyCalls = usageStats.calls.filter(c => new Date(c.timestamp) > oneDayAgo);
+  const weeklyCalls = usageStats.calls.filter(c => new Date(c.timestamp) > oneWeekAgo);
+  const monthlyCalls = usageStats.calls.filter(c => new Date(c.timestamp) > oneMonthAgo);
+  
+  const sumCost = (calls) => calls.reduce((sum, c) => sum + parseFloat(c.costUSD), 0);
+  const sumTokens = (calls, type) => calls.reduce((sum, c) => sum + (type === 'input' ? c.inputTokens : c.outputTokens), 0);
+  
   res.json({
     ...usageStats,
     totalCostUSD: usageStats.totalCostUSD.toFixed(4),
     averageCostPerCall: usageStats.totalCalls > 0 
       ? (usageStats.totalCostUSD / usageStats.totalCalls).toFixed(6) 
-      : '0.000000'
+      : '0.000000',
+    // Aggregated stats for admin panel
+    daily: {
+      calls: dailyCalls.length,
+      cost: sumCost(dailyCalls).toFixed(4),
+      inputTokens: sumTokens(dailyCalls, 'input'),
+      outputTokens: sumTokens(dailyCalls, 'output')
+    },
+    weekly: {
+      calls: weeklyCalls.length,
+      cost: sumCost(weeklyCalls).toFixed(4),
+      inputTokens: sumTokens(weeklyCalls, 'input'),
+      outputTokens: sumTokens(weeklyCalls, 'output')
+    },
+    monthly: {
+      calls: monthlyCalls.length,
+      cost: sumCost(monthlyCalls).toFixed(4),
+      inputTokens: sumTokens(monthlyCalls, 'input'),
+      outputTokens: sumTokens(monthlyCalls, 'output')
+    },
+    // Recent calls for history table
+    recentCalls: usageStats.calls.slice(-20).reverse()
   });
+});
+
+// Export usage stats as CSV
+app.get('/api/usage/export', (req, res) => {
+  try {
+    const headers = ['Timestamp', 'Model', 'Purpose', 'Input Tokens', 'Output Tokens', 'Cost (USD)'];
+    const rows = usageStats.calls.map(call => [
+      call.timestamp,
+      call.model,
+      call.purpose || 'N/A',
+      call.inputTokens,
+      call.outputTokens,
+      call.costUSD
+    ]);
+    
+    // Add summary row
+    rows.push([]);
+    rows.push(['SUMMARY']);
+    rows.push(['Total Calls', usageStats.totalCalls]);
+    rows.push(['Total Input Tokens', usageStats.totalInputTokens]);
+    rows.push(['Total Output Tokens', usageStats.totalOutputTokens]);
+    rows.push(['Total Cost (USD)', usageStats.totalCostUSD.toFixed(4)]);
+    rows.push(['Session Start', usageStats.sessionStart]);
+    rows.push(['Export Date', new Date().toISOString()]);
+    
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=usage_report_${Date.now()}.csv`);
+    res.send(csv);
+  } catch (error) {
+    console.error('Error exporting usage:', error);
+    res.status(500).json({ error: 'Failed to export usage data' });
+  }
 });
 
 // Reset usage stats
@@ -1903,24 +2002,26 @@ app.get('/api/drafts/:projectId', (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log('='.repeat(60));
-  console.log('🚀 IM Creator API Server - ENHANCED v3.0');
+  console.log('🚀 IM Creator API Server - ENHANCED v5.0');
   console.log('='.repeat(60));
   console.log(`📍 Port: ${PORT}`);
   console.log(`🔗 Health: http://localhost:${PORT}/api/health`);
   console.log(`🔑 API Key: ${process.env.ANTHROPIC_API_KEY ? 'Configured ✅' : 'NOT SET ❌'}`);
-  console.log(`📊 PPTX Generation: Enhanced v3 ✅`);
+  console.log(`📊 PPTX Generation: Enhanced v5 ✅`);
   console.log(`🎨 Themes: ${Object.keys(THEMES).join(', ')}`);
-  console.log(`💰 Usage Tracking: Enabled ✅`);
+  console.log(`💰 Usage Tracking: Enhanced with CSV Export ✅`);
   console.log('='.repeat(60));
   console.log('Fixes Applied:');
   console.log('  1. ✅ Consistent slide numbering');
   console.log('  2. ✅ All case studies included');
   console.log('  3. ✅ Proper pie charts with segments');
-  console.log('  4. ✅ Text truncation to prevent overflow');
+  console.log('  4. ✅ Smart text handling (no ellipsis)');
   console.log('  5. ✅ Generic template names');
   console.log('  6. ✅ Theme colors properly applied');
   console.log('  7. ✅ Target buyer type affects content');
   console.log('  8. ✅ Content variants and appendix support');
-  console.log('  9. ✅ Anthropic usage tracking');
+  console.log('  9. ✅ Enhanced usage tracking with CSV export');
+  console.log(' 10. ✅ Dynamic revenue chart');
+  console.log(' 11. ✅ Hide empty sections');
   console.log('='.repeat(60));
 });

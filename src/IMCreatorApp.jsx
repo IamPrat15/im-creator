@@ -208,6 +208,10 @@ export default function IMCreatorApp({ user, onLogout }) {
   const [showGeneratedContent, setShowGeneratedContent] = useState(false);
   const [apiStatus, setApiStatus] = useState('checking');
   const [notification, setNotification] = useState(null);
+  // Usage tracking states
+  const [showUsagePanel, setShowUsagePanel] = useState(false);
+  const [usageData, setUsageData] = useState(null);
+  const [usageLoading, setUsageLoading] = useState(false);
 
   const phase = questionnaire.phases[currentPhase];
   const questions = phase.questions.filter(q => !q.isHidden).sort((a, b) => a.order - b.order);
@@ -218,6 +222,63 @@ export default function IMCreatorApp({ user, onLogout }) {
       .then(() => setApiStatus('connected'))
       .catch(() => setApiStatus('disconnected'));
   }, []);
+
+  // Fetch usage data
+  const fetchUsageData = async () => {
+    setUsageLoading(true);
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${API_BASE}/api/usage`);
+      const data = await response.json();
+      setUsageData(data);
+    } catch (error) {
+      console.error('Failed to fetch usage data:', error);
+      showNotification('Failed to fetch usage data', 'error');
+    } finally {
+      setUsageLoading(false);
+    }
+  };
+
+  // Export usage to CSV
+  const exportUsageCSV = async () => {
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${API_BASE}/api/usage/export`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `usage_report_${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showNotification('Usage report downloaded', 'success');
+    } catch (error) {
+      console.error('Failed to export usage:', error);
+      showNotification('Failed to export usage data', 'error');
+    }
+  };
+
+  // Reset usage stats
+  const resetUsageStats = async () => {
+    if (!window.confirm('Are you sure you want to reset all usage statistics? This cannot be undone.')) {
+      return;
+    }
+    try {
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      await fetch(`${API_BASE}/api/usage/reset`, { method: 'POST' });
+      await fetchUsageData();
+      showNotification('Usage statistics reset', 'success');
+    } catch (error) {
+      console.error('Failed to reset usage:', error);
+      showNotification('Failed to reset usage data', 'error');
+    }
+  };
+
+  // Open usage panel and fetch data
+  const openUsagePanel = () => {
+    setShowUsagePanel(true);
+    fetchUsageData();
+  };
 
   const showNotification = (message, type = 'info') => {
     setNotification({ message, type });
@@ -625,6 +686,30 @@ export default function IMCreatorApp({ user, onLogout }) {
               <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
             Configure
+          </button>
+
+          {/* Usage Tracking Button */}
+          <button
+            onClick={openUsagePanel}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: showUsagePanel ? THEME.secondary : THEME.background,
+              color: showUsagePanel ? 'white' : THEME.text,
+              border: `1px solid ${showUsagePanel ? THEME.secondary : THEME.border}`,
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '500',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            Usage
           </button>
 
           {/* User Menu */}
@@ -1350,6 +1435,269 @@ export default function IMCreatorApp({ user, onLogout }) {
               >
                 📥 Download JSON
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Usage Tracking Panel */}
+      {showUsagePanel && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000
+        }}>
+          <div style={{
+            backgroundColor: THEME.surface,
+            borderRadius: '16px',
+            width: '900px',
+            maxHeight: '80vh',
+            overflow: 'hidden',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: '20px 24px',
+              borderBottom: `1px solid ${THEME.border}`,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: THEME.secondary,
+              color: 'white'
+            }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600' }}>📊 API Usage Dashboard</h2>
+                <p style={{ margin: '4px 0 0 0', fontSize: '13px', opacity: 0.8 }}>
+                  Monitor Anthropic API usage and costs
+                </p>
+              </div>
+              <button
+                onClick={() => setShowUsagePanel(false)}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 12px',
+                  cursor: 'pointer',
+                  color: 'white',
+                  fontSize: '14px'
+                }}
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{ padding: '24px', maxHeight: 'calc(80vh - 140px)', overflowY: 'auto' }}>
+              {usageLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px' }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    border: `3px solid ${THEME.border}`,
+                    borderTopColor: THEME.primary,
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    margin: '0 auto 16px'
+                  }} />
+                  <p style={{ color: THEME.textLight }}>Loading usage data...</p>
+                </div>
+              ) : usageData ? (
+                <>
+                  {/* Summary Cards */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    gap: '16px',
+                    marginBottom: '24px'
+                  }}>
+                    <div style={{
+                      padding: '20px',
+                      backgroundColor: `${THEME.primary}10`,
+                      borderRadius: '12px',
+                      border: `1px solid ${THEME.primary}30`
+                    }}>
+                      <div style={{ fontSize: '12px', color: THEME.textLight, marginBottom: '8px' }}>TOTAL CALLS</div>
+                      <div style={{ fontSize: '28px', fontWeight: '700', color: THEME.primary }}>{usageData.totalCalls}</div>
+                    </div>
+                    <div style={{
+                      padding: '20px',
+                      backgroundColor: `${THEME.accent}10`,
+                      borderRadius: '12px',
+                      border: `1px solid ${THEME.accent}30`
+                    }}>
+                      <div style={{ fontSize: '12px', color: THEME.textLight, marginBottom: '8px' }}>TOTAL COST</div>
+                      <div style={{ fontSize: '28px', fontWeight: '700', color: THEME.accent }}>${usageData.totalCostUSD}</div>
+                    </div>
+                    <div style={{
+                      padding: '20px',
+                      backgroundColor: `${THEME.accentBlue}10`,
+                      borderRadius: '12px',
+                      border: `1px solid ${THEME.accentBlue}30`
+                    }}>
+                      <div style={{ fontSize: '12px', color: THEME.textLight, marginBottom: '8px' }}>INPUT TOKENS</div>
+                      <div style={{ fontSize: '28px', fontWeight: '700', color: THEME.accentBlue }}>{usageData.totalInputTokens?.toLocaleString()}</div>
+                    </div>
+                    <div style={{
+                      padding: '20px',
+                      backgroundColor: `${THEME.secondary}10`,
+                      borderRadius: '12px',
+                      border: `1px solid ${THEME.secondary}30`
+                    }}>
+                      <div style={{ fontSize: '12px', color: THEME.textLight, marginBottom: '8px' }}>OUTPUT TOKENS</div>
+                      <div style={{ fontSize: '28px', fontWeight: '700', color: THEME.secondary }}>{usageData.totalOutputTokens?.toLocaleString()}</div>
+                    </div>
+                  </div>
+
+                  {/* Period Stats */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: '16px',
+                    marginBottom: '24px'
+                  }}>
+                    {[
+                      { label: 'Last 24 Hours', data: usageData.daily },
+                      { label: 'Last 7 Days', data: usageData.weekly },
+                      { label: 'Last 30 Days', data: usageData.monthly }
+                    ].map(period => (
+                      <div key={period.label} style={{
+                        padding: '16px',
+                        backgroundColor: THEME.background,
+                        borderRadius: '12px',
+                        border: `1px solid ${THEME.border}`
+                      }}>
+                        <div style={{ fontSize: '14px', fontWeight: '600', color: THEME.text, marginBottom: '12px' }}>
+                          {period.label}
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '13px' }}>
+                          <div><span style={{ color: THEME.textLight }}>Calls:</span> <strong>{period.data?.calls || 0}</strong></div>
+                          <div><span style={{ color: THEME.textLight }}>Cost:</span> <strong>${period.data?.cost || '0.0000'}</strong></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Recent Calls Table */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ fontSize: '16px', fontWeight: '600', color: THEME.text, marginBottom: '12px' }}>
+                      Recent API Calls
+                    </h3>
+                    <div style={{
+                      border: `1px solid ${THEME.border}`,
+                      borderRadius: '8px',
+                      overflow: 'hidden'
+                    }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: THEME.background }}>
+                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: `1px solid ${THEME.border}` }}>Time</th>
+                            <th style={{ padding: '12px', textAlign: 'left', borderBottom: `1px solid ${THEME.border}` }}>Purpose</th>
+                            <th style={{ padding: '12px', textAlign: 'right', borderBottom: `1px solid ${THEME.border}` }}>Input</th>
+                            <th style={{ padding: '12px', textAlign: 'right', borderBottom: `1px solid ${THEME.border}` }}>Output</th>
+                            <th style={{ padding: '12px', textAlign: 'right', borderBottom: `1px solid ${THEME.border}` }}>Cost</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(usageData.recentCalls || []).slice(0, 10).map((call, idx) => (
+                            <tr key={idx} style={{ borderBottom: idx < 9 ? `1px solid ${THEME.border}` : 'none' }}>
+                              <td style={{ padding: '10px 12px', color: THEME.textLight }}>
+                                {new Date(call.timestamp).toLocaleString()}
+                              </td>
+                              <td style={{ padding: '10px 12px' }}>{call.purpose || 'N/A'}</td>
+                              <td style={{ padding: '10px 12px', textAlign: 'right' }}>{call.inputTokens?.toLocaleString()}</td>
+                              <td style={{ padding: '10px 12px', textAlign: 'right' }}>{call.outputTokens?.toLocaleString()}</td>
+                              <td style={{ padding: '10px 12px', textAlign: 'right', color: THEME.accent, fontWeight: '500' }}>
+                                ${call.costUSD}
+                              </td>
+                            </tr>
+                          ))}
+                          {(!usageData.recentCalls || usageData.recentCalls.length === 0) && (
+                            <tr>
+                              <td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: THEME.textLight }}>
+                                No API calls recorded yet
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                    <button
+                      onClick={resetUsageStats}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: THEME.background,
+                        color: THEME.accentRed,
+                        border: `1px solid ${THEME.accentRed}`,
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      🗑️ Reset Stats
+                    </button>
+                    <button
+                      onClick={fetchUsageData}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: THEME.background,
+                        color: THEME.text,
+                        border: `1px solid ${THEME.border}`,
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      🔄 Refresh
+                    </button>
+                    <button
+                      onClick={exportUsageCSV}
+                      style={{
+                        padding: '10px 20px',
+                        backgroundColor: THEME.primary,
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      📥 Export CSV
+                    </button>
+                  </div>
+
+                  {/* Session Info */}
+                  <div style={{
+                    marginTop: '20px',
+                    padding: '12px 16px',
+                    backgroundColor: THEME.background,
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    color: THEME.textLight
+                  }}>
+                    Session started: {usageData.sessionStart ? new Date(usageData.sessionStart).toLocaleString() : 'N/A'} | 
+                    Average cost per call: ${usageData.averageCostPerCall || '0.000000'}
+                  </div>
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px', color: THEME.textLight }}>
+                  Failed to load usage data. Please try again.
+                </div>
+              )}
             </div>
           </div>
         </div>

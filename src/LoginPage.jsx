@@ -1,6 +1,24 @@
 import React, { useState } from 'react';
 
 // ============================================================================
+// APP VERSION - Semantic Versioning (Major.Minor.Patch)
+// ============================================================================
+// Update this version when deploying changes:
+//   - MAJOR (X.0.0): Breaking changes, major redesigns
+//   - MINOR (5.X.0): New features added (backward compatible)
+//   - PATCH (5.0.X): Bug fixes only
+//
+// Version History:
+//   v5.0.0 - Usage dashboard, dynamic charts, hide empty sections, CSV export
+//   v4.0.0 - Smart text handling, format labels, advisor placeholder fix
+//   v3.0.0 - Slide numbering, pie charts, case studies, theme colors
+//   v2.0.0 - Authentication, Office 365 SSO support
+//   v1.0.0 - Initial release
+// ============================================================================
+const APP_VERSION = 'v5.0.0';
+// ============================================================================
+
+// ============================================================================
 // CONFIGURATION - Test User Credentials
 // ============================================================================
 // These credentials are for testing purposes only.
@@ -623,7 +641,7 @@ export default function LoginPage({ onLogin }) {
           <a href="#" style={{ color: THEME.text, marginLeft: '4px', textDecoration: 'none' }}>Privacy</a> · 
           <a href="#" style={{ color: THEME.text, marginLeft: '4px', textDecoration: 'none' }}>Terms</a>
         </p>
-        <p style={{ margin: 0, fontSize: '12px', color: THEME.textLight }}>v1.0.0</p>
+        <p style={{ margin: 0, fontSize: '12px', color: THEME.textLight }}>{APP_VERSION}</p>
       </footer>
 
       {/* CSS Animation */}
