@@ -1609,28 +1609,6 @@ function generateSynergiesSlide(pptx, data, colors, slideNumber, targetBuyers) {
   return slideNumber + 1;
 }
 
-    const defaultFinancial = [
-      'Strong EBITDA margins with expansion potential',
-      'Capital-light business model',
-      'High revenue visibility and retention',
-      'Experienced management team',
-      'Platform for consolidation',
-      'Multiple exit options (IPO, strategic sale)'
-    ];
-    
-    const finSynergies = financialSynergies.length > 0 ? financialSynergies : defaultFinancial;
-    finSynergies.slice(0, 7).forEach((syn, idx) => {
-      slide.addText(`▸ ${truncateText(syn, showStrategic && showFinancial ? 50 : 90)}`, {
-        x: finColX + 0.1, y: 1.6 + (idx * 0.5), w: colWidth - 0.2, h: 0.45,
-        fontSize: 10, color: colors.text, fontFace: 'Arial'
-      });
-    });
-  }
-  
-  addSlideFooter(slide, colors, slideNumber);
-  return slideNumber + 1;
-}
-
 // MARKET POSITION SLIDE (Content Variant)
 function generateMarketPositionSlide(pptx, data, colors, slideNumber, industryData) {
   const slide = pptx.addSlide();
