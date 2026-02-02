@@ -1431,6 +1431,73 @@ function generateFinancialsSlide(pptx, data, colors, slideNumber, docConfig) {
   return slideNumber + 1;
 }
 
+// CASE STUDY SLIDE
+function generateCaseStudySlide(pptx, caseStudy, colors, slideNumber, caseNumber, docConfig) {
+  const slide = pptx.addSlide();
+  
+  let clientName = caseStudy.client || `Case Study ${caseNumber}`;
+  
+  // Anonymize for teaser
+  if (!docConfig.includeClientNames && caseStudy.industry) {
+    clientName = `Leading ${caseStudy.industry} Client`;
+  }
+  
+  addSlideHeader(slide, colors, `Case Study: ${truncateText(clientName, 35, false)}`, null);
+  
+  // Client info box
+  slide.addShape('rect', {
+    x: 0.3, y: 1.15, w: 2.2, h: 1.7,
+    fill: { color: colors.primary }
+  });
+  slide.addText(truncateText(clientName, 22, false), {
+    x: 0.4, y: 1.35, w: 2.0, h: 0.45,
+    fontSize: 13, bold: true, color: colors.white, fontFace: 'Arial'
+  });
+  if (caseStudy.industry) {
+    slide.addText(caseStudy.industry, {
+      x: 0.4, y: 1.85, w: 2.0, h: 0.28,
+      fontSize: 10, color: colors.white, fontFace: 'Arial', transparency: 20
+    });
+  }
+  
+  // Challenge box
+  addSectionBox(slide, colors, 2.6, 1.15, 3.4, 1.7, 'Challenge', colors.danger);
+  slide.addText(truncateDescription(caseStudy.challenge || 'Business challenge description', 200), {
+    x: 2.7, y: 1.55, w: 3.2, h: 1.2,
+    fontSize: 9, color: colors.text, fontFace: 'Arial', valign: 'top'
+  });
+  
+  // Solution box
+  addSectionBox(slide, colors, 6.1, 1.15, 3.4, 1.7, 'Solution', colors.primary);
+  slide.addText(truncateDescription(caseStudy.solution || 'Solution implemented', 200), {
+    x: 6.2, y: 1.55, w: 3.2, h: 1.2,
+    fontSize: 9, color: colors.text, fontFace: 'Arial', valign: 'top'
+  });
+  
+  // Results section
+  slide.addShape('rect', {
+    x: 0.3, y: 2.95, w: 9.2, h: 0.32,
+    fill: { color: colors.accent }
+  });
+  slide.addText('Key Results & Impact', {
+    x: 0.4, y: 2.95, w: 9, h: 0.32,
+    fontSize: 11, bold: true, color: colors.white, fontFace: 'Arial', valign: 'middle'
+  });
+  
+  const results = parseLines(caseStudy.results, 6);
+  results.forEach((result, idx) => {
+    const col = idx % 2;
+    const row = Math.floor(idx / 2);
+    
+    slide.addText(`✓ ${truncateText(result.trim(), 50)}`, {
+      x: 0.4 + (col * 4.6), y: 3.38 + (row * 0.45), w: 4.4, h: 0.4,
+      fontSize: 10, color: colors.text, fontFace: 'Arial'
+    });
+  });
+  
+  addSlideFooter(slide, colors, slideNumber);
+  return slideNumber + 1;
+}
 
 // GROWTH STRATEGY SLIDE - FIXED: Text truncation for drivers
 function generateGrowthSlide(pptx, data, colors, slideNumber, targetBuyers) {
