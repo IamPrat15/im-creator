@@ -71,8 +71,8 @@ const defaultQuestionnaire = {
         { id: 'founderTitle', type: 'text', label: 'Founder Title', placeholder: 'Founder & CEO', required: true, order: 2 },
         { id: 'founderExperience', type: 'number', label: 'Years of Experience', required: true, order: 3 },
         { id: 'founderEducation', type: 'textarea', label: 'Education', placeholder: 'MBA - JBIMS\nB.E. - VJTI', helpText: 'Format: Degree - Institution (one per line)', order: 4 },
-        { id: 'previousCompanies', type: 'textarea', label: 'Previous Companies', placeholder: 'Company | Role | Duration', helpText: 'Format: Company | Role | Duration', order: 5 },
-        { id: 'leadershipTeam', type: 'textarea', label: 'Leadership Team', placeholder: 'Name | Title | Department', helpText: 'Format: Name | Title | Department', order: 6 }
+        { id: 'previousCompanies', type: 'textarea', label: 'Previous Companies', placeholder: 'Infosys | Senior Architect | 5 years', helpText: 'Enter one company per line. Format: Company | Role | Duration', order: 5 },
+        { id: 'leadershipTeam', type: 'textarea', label: 'Leadership Team', placeholder: 'Priya Sharma | CTO | Technology', helpText: 'Enter one leader per line. Format: Name | Title | Department', order: 6 }
       ]
     },
     {
@@ -81,9 +81,9 @@ const defaultQuestionnaire = {
       icon: '⚙️',
       description: 'Offerings & capabilities',
       questions: [
-        { id: 'serviceLines', type: 'textarea', label: 'Service Lines', placeholder: 'Cloud & Automation | 39% | AWS migration, DevOps, Infrastructure', required: true, helpText: 'Format: Name | Revenue % | Description', order: 1 },
-        { id: 'products', type: 'textarea', label: 'Proprietary Products', placeholder: 'AI Agent Studio | Platform for AI agents | 500+ templates', helpText: 'Format: Name | Description | Key metric', order: 2 },
-        { id: 'techPartnerships', type: 'textarea', label: 'Technology Partnerships', placeholder: 'AWS Advanced Tier Partner\nDatabricks Partner', helpText: 'Format: Partnership Name (one per line)', order: 3 },
+        { id: 'serviceLines', type: 'textarea', label: 'Service Lines', placeholder: 'Cloud & Automation | 39% | AWS migration, DevOps', required: true, helpText: 'Enter one service per line. Format: Name | Revenue % | Description', order: 1 },
+        { id: 'products', type: 'textarea', label: 'Proprietary Products', placeholder: 'NovaCloud Platform | Cloud automation | 500 deployments', helpText: 'Enter one product per line. Format: Name | Description | Key metric', order: 2 },
+        { id: 'techPartnerships', type: 'textarea', label: 'Technology Partnerships', placeholder: 'AWS Advanced Tier Partner\nMicrosoft Gold Partner', helpText: 'Enter one partnership per line', order: 3 },
         { id: 'certifications', type: 'textarea', label: 'Certifications & Awards', placeholder: 'AWS Financial Services Competency\nBest BFSI Partner 2024', order: 4 }
       ]
     },
@@ -102,8 +102,8 @@ const defaultQuestionnaire = {
           { value: 'media', label: 'Media & Entertainment' }
         ], helpText: 'Industry-specific benchmarks will be included', order: 1 },
         { id: 'primaryVerticalPct', type: 'number', label: 'Primary Vertical Revenue %', required: true, order: 2 },
-        { id: 'otherVerticals', type: 'textarea', label: 'Other Verticals', placeholder: 'FinTech | 14%\nMedia | 11%', helpText: 'Format: Vertical Name | Revenue %', order: 3 },
-        { id: 'topClients', type: 'textarea', label: 'Top Clients', placeholder: 'Axis Bank | BFSI | 2015\nHDFC Bank | BFSI | 2018', required: true, helpText: 'Format: Client Name | Vertical | Year Started', order: 4 },
+        { id: 'otherVerticals', type: 'textarea', label: 'Other Verticals', placeholder: 'FinTech | 14%\nMedia | 11%', helpText: 'Enter one vertical per line. Format: Vertical Name | Revenue %', order: 3 },
+        { id: 'topClients', type: 'textarea', label: 'Top Clients', placeholder: 'Axis Bank | BFSI | 2015\nHDFC Bank | BFSI | 2018', required: true, helpText: 'Enter one client per line. Format: Client Name | Vertical | Year Started', order: 4 },
         { id: 'top10Concentration', type: 'number', label: 'Top 10 Client Concentration %', required: true, order: 5 },
         { id: 'netRetention', type: 'number', label: 'Net Revenue Retention %', helpText: 'NRR indicates revenue expansion from existing clients', order: 6 }
       ]
@@ -121,7 +121,7 @@ const defaultQuestionnaire = {
         { id: 'revenueFY27P', type: 'number', label: 'Revenue FY27P (Cr/Mn)', helpText: 'Leave blank if not projected', order: 5 },
         { id: 'revenueFY28P', type: 'number', label: 'Revenue FY28P (Cr/Mn)', helpText: 'Leave blank if not projected', order: 6 },
         { id: 'ebitdaMarginFY25', type: 'number', label: 'EBITDA Margin FY25 %', order: 7 },
-        { id: 'revenueByService', type: 'textarea', label: 'Revenue by Service', placeholder: 'Cloud & Automation | 39%\nManaged Services | 31%', helpText: 'Format: Service Name | Revenue %', order: 8 },
+        { id: 'revenueByService', type: 'textarea', label: 'Revenue by Service', placeholder: 'Cloud Services | 39%\nManaged Services | 31%', helpText: 'Enter one service per line. Format: Service Name | Revenue %', order: 8 },
         { id: 'grossMargin', type: 'number', label: 'Gross Margin %', order: 9 },
         { id: 'netProfitMargin', type: 'number', label: 'Net Profit Margin %', order: 10 }
       ]
@@ -141,14 +141,14 @@ const defaultQuestionnaire = {
       description: 'Future plans & competitive position',
       questions: [
         { id: 'growthDrivers', type: 'textarea', label: 'Key Growth Drivers', required: true, placeholder: 'AI adoption in enterprise\nCloud migration demand\nExpanding BFSI relationships', order: 1 },
-        { id: 'competitiveAdvantages', type: 'textarea', label: 'Competitive Advantages', required: true, helpText: 'Format: Advantage Title | Supporting Detail (min 5)', placeholder: 'Deep AWS expertise | Only 8 companies in India with this certification\nStrong BFSI relationships | 10+ year partnerships with leading banks', order: 2 },
+        { id: 'competitiveAdvantages', type: 'textarea', label: 'Competitive Advantages', required: true, helpText: 'Enter one advantage per line. Format: Advantage Title | Supporting Detail (min 5 recommended)', placeholder: 'Deep AWS expertise | Only 8 companies in India with certification\nStrong BFSI relationships | 10+ year partnerships', order: 2 },
         { id: 'shortTermGoals', type: 'textarea', label: 'Short-Term Goals (0-12 months)', placeholder: 'Launch AI Practice\nExpand Bangalore team', order: 3 },
         { id: 'mediumTermGoals', type: 'textarea', label: 'Medium-Term Goals (1-3 years)', placeholder: 'Enter international markets\nAchieve ₹500 Cr revenue', order: 4 },
         { id: 'synergiesStrategic', type: 'textarea', label: 'Synergies for Strategic Buyers', placeholder: 'Access to BFSI client base\nAWS competencies enhancement\nIndian market expansion', order: 5 },
         { id: 'synergiesFinancial', type: 'textarea', label: 'Synergies for Financial Investors', placeholder: 'Strong EBITDA margins\nCapital-light model\nHigh revenue visibility', order: 6 },
         { id: 'marketSize', type: 'text', label: 'Total Addressable Market (TAM)', placeholder: 'e.g., $50B globally', order: 7 },
         { id: 'marketGrowthRate', type: 'text', label: 'Market Growth Rate', placeholder: 'e.g., 15% CAGR', order: 8 },
-        { id: 'competitorLandscape', type: 'textarea', label: 'Key Competitors', placeholder: 'Competitor Name | Strength | Weakness', helpText: 'Format: Name | Strength | Weakness', order: 9 }
+        { id: 'competitorLandscape', type: 'textarea', label: 'Key Competitors', placeholder: 'TCS | Global reach | Premium pricing\nInfosys | Strong brand | Less agile', helpText: 'Enter one competitor per line. Format: Name | Strength | Weakness. Required for Market Position variant.', order: 9 }
       ]
     },
     {
