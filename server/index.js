@@ -796,6 +796,133 @@ function calculateCAGR(startValue, endValue, years) {
 }
 
 // ============================================================================
+// RENDER FUNCTIONS FOR SLIDE TYPES
+// ============================================================================
+function renderExecutiveSummary(slide, colors, data, layoutRec) {
+  slide.addText(truncateDescription(data.companyDescription || '', 600), {
+    x: 0.5, y: 1.2, w: 9.0, h: 3.0,
+    fontSize: adjustedFont(DESIGN.fonts.body, layoutRec.fontAdjustment),
+    color: colors.text
+  });
+  if (layoutRec.chartType !== 'none') {
+    const chartData = [
+      { name: 'FY24 Revenue', labels: ['FY24'], values: [data.revenueFY24 || 0] },
+      { name: 'FY25 Revenue', labels: ['FY25'], values: [data.revenueFY25 || 0] }
+    ];
+    addChartByType(slide, colors, chartData, layoutRec.chartType);
+  }
+}
+
+function renderServicesSlide(slide, colors, data, layoutRec) {
+  const services = (data.serviceLines || '').split('\n').filter(x => x.trim());
+  slide.addText(services.join('\n'), {
+    x: 0.5, y: 1.2, w: 9.0, h: 3.0,
+    fontSize: adjustedFont(DESIGN.fonts.body, layoutRec.fontAdjustment),
+    color: colors.text
+  });
+}
+
+function renderClientsSlide(slide, colors, data, layoutRec) {
+  const clients = (data.topClients || '').split('\n').filter(x => x.trim());
+  slide.addText(clients.join('\n'), {
+    x: 0.5, y: 1.2, w: 9.0, h: 3.0,
+    fontSize: adjustedFont(DESIGN.fonts.body, layoutRec.fontAdjustment),
+    color: colors.text
+  });
+}
+
+function renderFinancialsSlide(slide, colors, data, layoutRec) {
+  slide.addText('Financial Overview', {
+    x: 0.5, y: 1.2, w: 9.0, h: 0.5,
+    fontSize: DESIGN.fonts.sectionHeader, bold: true
+  });
+  const chartData = [
+    { name: 'FY24 Revenue', labels: ['FY24'], values: [data.revenueFY24 || 0] },
+    { name: 'FY25 Revenue', labels: ['FY25'], values: [data.revenueFY25 || 0] }
+  ];
+  addChartByType(slide, colors, chartData, layoutRec.chartType);
+}
+
+function renderCaseStudySlide(slide, colors, data, layoutRec) {
+  slide.addText(truncateDescription(data.caseStudy || '', 600), {
+    x: 0.5, y: 1.2, w: 9.0, h: 3.5,
+    fontSize: adjustedFont(DESIGN.fonts.body, layoutRec.fontAdjustment),
+    color: colors.text
+  });
+}
+
+function renderGrowthSlide(slide, colors, data, layoutRec) {
+  slide.addText('Growth Timeline', {
+    x: 0.5, y: 1.2, w: 9.0, h: 0.5,
+    fontSize: DESIGN.fonts.sectionHeader, bold: true
+  });
+  if (layoutRec.chartType === 'timeline') {
+    const milestones = (data.milestones || '').split('\n').filter(x => x.trim());
+    const chartData = milestones.map((m, i) => ({
+      name: `Milestone ${i+1}`, labels: [m], values: [i+1]
+    }));
+    addChartByType(slide, colors, chartData, 'timeline');
+  }
+}
+
+function renderMarketPositionSlide(slide, colors, data, layoutRec) {
+  slide.addText('Market Position', {
+    x: 0.5, y: 1.2, w: 9.0, h: 0.5,
+    fontSize: DESIGN.fonts.sectionHeader, bold: true
+  });
+  slide.addText(truncateDescription(data.marketPosition || '', 600), {
+    x: 0.5, y: 1.8, w: 9.0, h: 2.5,
+    fontSize: adjustedFont(DESIGN.fonts.body, layoutRec.fontAdjustment),
+    color: colors.text
+  });
+}
+
+// ============================================================================
+// UNIVERSAL SLIDE CREATION WRAPPER
+// ============================================================================
+async function createSlide(slideType, pptx, colors, data) {
+  const layoutRec = await analyzeDataForLayout(data, slideType);
+  const slide = pptx.addSlide();
+
+  switch (slideType) {
+    case 'executive-summary': renderExecutiveSummary(slide, colors, data, layoutRec); break;
+    case 'services': renderServicesSlide(slide, colors, data, layoutRec); break;
+    case 'clients': renderClientsSlide(slide, colors, data, layoutRec); break;
+    case 'financials': renderFinancialsSlide(slide, colors, data, layoutRec); break;
+    case 'case-study': renderCaseStudySlide(slide, colors, data, layoutRec); break;
+    case 'growth': renderGrowthSlide(slide, colors, data, layoutRec); break;
+    case 'market-position': renderMarketPositionSlide(slide, colors, data, layoutRec); break;
+    default:
+      slide.addText('Unsupported slide type', { x: 0.5, y: 1.5, w: 9.0, h: 3.0 });
+  }
+}
+
+// ============================================================================
+// EXPRESS ENDPOINTS
+// ============================================================================
+app.post('/generate-ppt', async (req, res) => {
+  try {
+    const { slidesData, themeId } = req.body;
+    const pptx = new PptxGenJS();
+    const colors = THEMES[themeId] || THEMES['modern-blue'];
+
+    for (const slideInfo of slidesData) {
+      await createSlide(slideInfo.type, pptx, colors, slideInfo.data);
+    }
+
+    const filePath = path.join(tempDir, `presentation_${Date.now()}.pptx`);
+    await pptx.writeFile({ fileName: filePath });
+    res.download(filePath);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Error generating PPT');
+  }
+});
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}, version ${VERSION.full}`));
+
+
+// ============================================================================
 // SLIDE HELPER FUNCTIONS - v7.1 ENHANCED
 // ============================================================================
 
