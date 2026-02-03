@@ -1,0 +1,316 @@
+"""
+IM Creator Python Backend - FastAPI Application
+Version: 7.2.0
+
+Main entry point with all API endpoints.
+"""
+
+import os
+import tempfile
+import uuid
+from datetime import datetime
+from pathlib import Path
+from typing import Optional, Dict, Any
+
+from fastapi import FastAPI, HTTPException, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
+from dotenv import load_dotenv
+
+from models import (
+    VERSION, PROFESSIONAL_TEMPLATES, INDUSTRY_DATA, DOCUMENT_CONFIGS,
+    GeneratePPTXRequest, GeneratePPTXRequestWrapper
+)
+from pptx_generator import generate_presentation
+from ai_layout_engine import get_usage_stats, reset_usage_stats
+
+# Load environment variables
+load_dotenv()
+
+# ============================================================================
+# APP INITIALIZATION
+# ============================================================================
+
+app = FastAPI(
+    title="IM Creator API",
+    description="AI-Powered Information Memorandum Creator - Python Backend",
+    version=VERSION["string"]
+)
+
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure appropriately for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Temp directory for generated files
+TEMP_DIR = Path(tempfile.gettempdir()) / "im_creator"
+TEMP_DIR.mkdir(exist_ok=True)
+
+# ============================================================================
+# HEALTH & INFO ENDPOINTS
+# ============================================================================
+
+@app.get("/api/health")
+async def health_check():
+    """Health check endpoint"""
+    return {
+        "status": "ok",
+        "version": VERSION["string"],
+        "version_full": VERSION["full"],
+        "build_date": VERSION["build_date"],
+        "backend": "Python/FastAPI",
+        "pptx_library": "python-pptx",
+        "features": [
+            "AI-Powered Layout Engine",
+            "Native Pie/Donut/Bar Charts (no fallback)",
+            "Progress Bars and Stacked Bars",
+            "50 Professional Templates",
+            "6 Industry Verticals",
+            "3 Document Types",
+            "Dynamic Font Adjustment"
+        ]
+    }
+
+@app.get("/api/version")
+async def get_version():
+    """Get version information"""
+    return {
+        "current": VERSION["string"],
+        "full": VERSION["full"],
+        "build_date": VERSION["build_date"],
+        "history": VERSION["history"]
+    }
+
+# ============================================================================
+# TEMPLATES & CONFIG ENDPOINTS
+# ============================================================================
+
+@app.get("/api/templates")
+async def get_templates():
+    """Get all available templates"""
+    return PROFESSIONAL_TEMPLATES
+
+@app.get("/api/industries")
+async def get_industries():
+    """Get all industry/vertical data"""
+    return list(INDUSTRY_DATA.values())
+
+@app.get("/api/document-types")
+async def get_document_types():
+    """Get document type configurations"""
+    return DOCUMENT_CONFIGS
+
+# ============================================================================
+# USAGE TRACKING ENDPOINTS
+# ============================================================================
+
+@app.get("/api/usage")
+async def get_usage():
+    """Get AI API usage statistics"""
+    return get_usage_stats()
+
+@app.post("/api/usage/reset")
+async def reset_usage():
+    """Reset usage statistics"""
+    reset_usage_stats()
+    return {"success": True, "message": "Usage statistics reset"}
+
+@app.get("/api/usage/export")
+async def export_usage():
+    """Export usage to CSV"""
+    stats = get_usage_stats()
+    
+    headers = ["Timestamp", "Model", "Input Tokens", "Output Tokens", "Cost (USD)", "Purpose"]
+    rows = []
+    for call in stats.get("recent_calls", []):
+        rows.append([
+            call.get("timestamp", ""),
+            call.get("model", ""),
+            str(call.get("input_tokens", 0)),
+            str(call.get("output_tokens", 0)),
+            call.get("cost_usd", "0"),
+            call.get("purpose", "")
+        ])
+    
+    csv_content = ",".join(headers) + "\n"
+    for row in rows:
+        csv_content += ",".join([f'"{v}"' for v in row]) + "\n"
+    
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=usage_report.csv"}
+    )
+
+# ============================================================================
+# PPTX GENERATION ENDPOINT
+# ============================================================================
+
+class GenerateRequest(BaseModel):
+    data: Dict[str, Any]
+    theme: Optional[str] = "modern-blue"
+
+@app.post("/api/generate-pptx")
+async def generate_pptx(request: GenerateRequest):
+    """Generate PowerPoint presentation"""
+    try:
+        data = request.data
+        theme = request.theme or "modern-blue"
+        
+        print(f"\n{'='*50}")
+        print(f"Generating PPTX with Python Backend v{VERSION['string']}")
+        print(f"Theme: {theme}")
+        print(f"Document Type: {data.get('documentType') or data.get('document_type') or 'management-presentation'}")
+        print(f"Company: {data.get('companyName') or data.get('company_name') or 'Unknown'}")
+        print(f"{'='*50}")
+        
+        # Generate presentation
+        prs = await generate_presentation(data, theme)
+        
+        # Generate filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        codename = (data.get("projectCodename") or data.get("project_codename") or "Project").replace(" ", "_")
+        codename = "".join(c for c in codename if c.isalnum() or c == "_")
+        filename = f"{codename}_{timestamp}.pptx"
+        filepath = TEMP_DIR / filename
+        
+        # Save presentation
+        prs.save(str(filepath))
+        
+        print(f"Generated: {filename}")
+        print(f"File size: {filepath.stat().st_size / 1024:.1f} KB")
+        
+        # Return file
+        return FileResponse(
+            path=str(filepath),
+            filename=filename,
+            media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            background=None  # File will be deleted after response
+        )
+        
+    except Exception as e:
+        print(f"PPTX generation error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# CHAT ENDPOINT (for AI assistant)
+# ============================================================================
+
+class ChatRequest(BaseModel):
+    message: str
+    conversation_history: Optional[list] = []
+    context: Optional[Dict[str, Any]] = {}
+
+@app.post("/api/chat")
+async def chat(request: ChatRequest):
+    """Chat with AI assistant"""
+    try:
+        from anthropic import Anthropic
+        
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="Anthropic API key not configured")
+        
+        client = Anthropic(api_key=api_key)
+        
+        system_prompt = f"""You are an expert M&A advisor helping create professional Information Memorandum presentations. 
+        You help users fill out company information for CIM, Management Presentations, and Teasers.
+        Be concise, professional, and helpful. Ask clarifying questions when needed.
+        Current form context: {request.context}"""
+        
+        messages = [
+            *[{"role": msg.get("role"), "content": msg.get("content")} for msg in request.conversation_history],
+            {"role": "user", "content": request.message}
+        ]
+        
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1024,
+            system=system_prompt,
+            messages=messages
+        )
+        
+        return {
+            "response": response.content[0].text,
+            "usage": {
+                "input_tokens": response.usage.input_tokens,
+                "output_tokens": response.usage.output_tokens
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# DRAFT MANAGEMENT
+# ============================================================================
+
+DRAFTS_DIR = TEMP_DIR / "drafts"
+DRAFTS_DIR.mkdir(exist_ok=True)
+
+class DraftRequest(BaseModel):
+    data: Dict[str, Any]
+    project_id: str
+
+@app.post("/api/drafts")
+async def save_draft(request: DraftRequest):
+    """Save draft"""
+    try:
+        import json
+        draft_path = DRAFTS_DIR / f"{request.project_id}.json"
+        with open(draft_path, "w") as f:
+            json.dump(request.data, f, indent=2)
+        return {"success": True, "project_id": request.project_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/drafts/{project_id}")
+async def get_draft(project_id: str):
+    """Get draft by project ID"""
+    try:
+        import json
+        draft_path = DRAFTS_DIR / f"{project_id}.json"
+        if not draft_path.exists():
+            raise HTTPException(status_code=404, detail="Draft not found")
+        with open(draft_path, "r") as f:
+            data = json.load(f)
+        return {"success": True, "data": data}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# STARTUP
+# ============================================================================
+
+@app.on_event("startup")
+async def startup_event():
+    """Startup event"""
+    print(f"\n{'='*60}")
+    print(f"IM Creator Python Backend {VERSION['full']}")
+    print(f"{'='*60}")
+    print(f"Using python-pptx for native chart generation")
+    print(f"\nFeatures:")
+    print(f"  ✓ Native Pie/Donut/Bar charts (no fallback)")
+    print(f"  ✓ AI-powered layout recommendations")
+    print(f"  ✓ 50 professional templates")
+    print(f"  ✓ 6 industry verticals")
+    print(f"  ✓ 3 document types")
+    print(f"{'='*60}\n")
+
+# ============================================================================
+# MAIN
+# ============================================================================
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
