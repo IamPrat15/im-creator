@@ -219,7 +219,7 @@ async def generate_pptx(request: GenerateRequest):
         print(f"{'='*50}")
         
         # Generate presentation
-        prs = await generate_presentation(data, theme)
+        prs = generate_presentation(data, theme)
         
         # Generate filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
