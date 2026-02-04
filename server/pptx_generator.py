@@ -15,9 +15,9 @@ from models import DESIGN, INDUSTRY_DATA, DOCUMENT_CONFIGS, get_theme_colors
 from utils import truncate_text, truncate_description, format_currency, format_date, parse_lines, parse_pipe_separated, calculate_cagr, safe_float, safe_int, adjusted_font, extract_percentage
 from ai_layout_engine import analyze_data_for_layout
 
-def hex_to_rgb(hex_color: str) -> RgbColor:
+def hex_to_rgb(hex_color: str) -> RGBColor:
     hex_color = hex_color.lstrip('#')
-    return RgbColor(int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16))
+    return RGBColor(int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16))
 
 def add_slide_header(slide, colors, title, subtitle=None, font_adj=0):
     bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(10), Inches(5.625))
