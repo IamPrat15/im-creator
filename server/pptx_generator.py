@@ -4,8 +4,8 @@ Version: 7.2.0
 """
 
 from pptx import Presentation
-from pptx.util import Inches, Pt, RGBColor
-#from pptx.dml.color import RgbColor
+from pptx.util import Inches, Pt
+from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN
 from pptx.enum.chart import XL_CHART_TYPE
