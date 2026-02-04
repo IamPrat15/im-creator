@@ -11,7 +11,7 @@ Implements Requirements #15-18:
 
 from pptx import Presentation
 from pptx.util import Inches, Pt
-from pptx.util import RGBColor  # Fixed import
+from pptx.dml.color import RGBColor  # Fixed import
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN
 from pptx.enum.chart import XL_CHART_TYPE
