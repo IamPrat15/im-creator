@@ -8,6 +8,7 @@ Main entry point with all API endpoints.
 import os
 import tempfile
 import uuid
+import base64
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -159,7 +160,7 @@ class GenerateRequest(BaseModel):
     data: Dict[str, Any]
     theme: Optional[str] = "modern-blue"
 
-@app.post("/api/generate-pptx")
+'''@app.post("/api/generate-pptx")
 async def generate_pptx(request: GenerateRequest):
     """Generate PowerPoint presentation"""
     try:
@@ -202,7 +203,74 @@ async def generate_pptx(request: GenerateRequest):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-
+'''
+@app.post("/api/generate-pptx")
+async def generate_pptx(request: GenerateRequest):
+    """Generate PowerPoint presentation"""
+    try:
+        data = request.data
+        theme = request.theme or "modern-blue"
+        
+        print(f"\n{'='*50}")
+        print(f"Generating PPTX with Python Backend v{VERSION['string']}")
+        print(f"Theme: {theme}")
+        print(f"Document Type: {data.get('documentType') or data.get('document_type') or 'management-presentation'}")
+        print(f"Company: {data.get('companyName') or data.get('company_name') or 'Unknown'}")
+        print(f"{'='*50}")
+        
+        # Generate presentation
+        prs = await generate_presentation(data, theme)
+        
+        # Generate filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        codename = (data.get("projectCodename") or data.get("project_codename") or "Project").replace(" ", "_")
+        codename = "".join(c for c in codename if c.isalnum() or c == "_")
+        filename = f"{codename}_{timestamp}.pptx"
+        filepath = TEMP_DIR / filename
+        
+        # Save presentation
+        prs.save(str(filepath))
+        
+        print(f"Generated: {filename}")
+        print(f"File size: {filepath.stat().st_size / 1024:.1f} KB")
+        
+        # Read file and convert to base64
+        import base64
+        with open(filepath, "rb") as f:
+            file_bytes = f.read()
+            file_base64 = base64.b64encode(file_bytes).decode('utf-8')
+        
+        # Count slides
+        slide_count = len(prs.slides)
+        
+        # Clean up temp file
+        try:
+            filepath.unlink()
+        except:
+            pass
+        
+        # Return JSON response with base64 data
+        return JSONResponse({
+            "success": True,
+            "fileData": file_base64,
+            "filename": filename,
+            "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "slideCount": slide_count,
+            "message": f"Generated {slide_count} slides successfully"
+        })
+        
+    except Exception as e:
+        print(f"PPTX generation error: {e}")
+        import traceback
+        traceback.print_exc()
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": str(e),
+                "message": "Failed to generate presentation"
+            }
+        )
 # ============================================================================
 # CHAT ENDPOINT (for AI assistant)
 # ============================================================================
