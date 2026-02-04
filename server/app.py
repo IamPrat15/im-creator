@@ -218,6 +218,58 @@ async def generate_pptx(request: GenerateRequest):
         print(f"Company: {data.get('companyName') or data.get('company_name') or 'Unknown'}")
         print(f"{'='*50}")
         
+
+        # ========================================
+        # REQUIREMENT #7: CONDITIONAL VALIDATION
+        # ========================================
+        buyer_types = data.get("targetBuyerType", [])
+        if isinstance(buyer_types, str):
+            buyer_types = [buyer_types]
+        
+        validation_errors = []
+        
+        # Rule 1: Strategic buyers need synergies
+        if "strategic" in buyer_types and not data.get("synergiesStrategic") and not data.get("synergies_strategic"):
+            validation_errors.append("Strategic synergies are required when targeting strategic buyers")
+        
+        # Rule 2: Financial buyers need financial synergies
+        if "financial" in buyer_types and not data.get("synergiesFinancial") and not data.get("synergies_financial"):
+            validation_errors.append("Financial synergies are required when targeting financial investors")
+        
+        # Rule 3: CIM requires additional details
+        doc_type = (data.get("documentType") or data.get("document_type") or "").lower()
+        if doc_type == "cim":
+            if not data.get("leadershipTeam") and not data.get("leadership_team"):
+                validation_errors.append("Leadership team details are required for CIM documents")
+            if not data.get("competitiveAdvantages") and not data.get("competitive_advantages"):
+                validation_errors.append("Competitive advantages are required for CIM documents")
+            if not data.get("growthDrivers") and not data.get("growth_drivers"):
+                validation_errors.append("Growth drivers are required for CIM documents")
+        
+        # Rule 4: If revenue provided, margins required
+        if (data.get("revenueFY25") or data.get("revenue_fy25")):
+            if not data.get("ebitdaMarginFY25") and not data.get("ebitda_margin_fy25"):
+                validation_errors.append("EBITDA margin is required when FY25 revenue is provided")
+        
+        # Rule 5: If including additional case studies, must have at least 3 total
+        if data.get("includeAdditionalCaseStudies") or data.get("include_additional_case_studies"):
+            case_studies = data.get("caseStudies") or []
+            if len(case_studies) < 3:
+                validation_errors.append("At least 3 case studies required to include additional case studies in appendix")
+        
+        # Return validation errors if any
+        if validation_errors:
+            print(f"Validation failed: {validation_errors}")
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "success": False,
+                    "error": "Validation failed",
+                    "validation_errors": validation_errors,
+                    "message": "Please fill in all required fields based on your selections"
+                }
+            )
+
         # Generate presentation
         prs = generate_presentation(data, theme)
         

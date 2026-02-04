@@ -871,6 +871,18 @@ def create_slide(slide_type: str, prs: Presentation, colors: dict, data: dict, p
         render_synergies(slide, colors, data, page_num, layout_rec, context)
         return page_num + 1
     
+    elif slide_type == "appendix-financials":
+        render_appendix_financials(slide, colors, data, page_num, layout_rec, context)
+        return page_num + 1
+    
+    elif slide_type == "appendix-case-studies":
+        render_appendix_case_studies(slide, colors, data, page_num, layout_rec, context)
+        return page_num + 1
+    
+    elif slide_type == "appendix-team-bios":
+        render_appendix_team_bios(slide, colors, data, page_num, layout_rec, context)
+        return page_num + 1
+    
     elif slide_type == "thank-you":
         render_thank_you_slide(slide, colors, data, context.get("doc_config", {}))
         return None
@@ -886,49 +898,286 @@ def create_slide(slide_type: str, prs: Presentation, colors: dict, data: dict, p
 
 def generate_presentation(data: Dict, theme: str = "modern-blue") -> Presentation:
     """
-    Generate complete presentation - Implements Requirements #1, #18
+    Generate complete presentation with robust error handling
     
-    This function:
-    - Determines slides based on document type (Req #1)
-    - Iterates through slidesData calling createSlide() for each (Req #18)
-    - Applies buyer-specific and industry-specific content (Req #2, #3)
+    Implements Requirements #1, #18 with comprehensive validation
     """
-    prs = Presentation()
-    prs.slide_width = Inches(10)
-    prs.slide_height = Inches(5.625)
+    # ========================================
+    # STEP 1: Input Validation & Normalization
+    # ========================================
     
-    # Get theme colors
-    colors = get_theme_colors(theme)
+    # Handle string input (in case data comes as JSON string)
+    if isinstance(data, str):
+        import json
+        try:
+            data = json.loads(data)
+        except json.JSONDecodeError as e:
+            print(f"ERROR: Invalid JSON data: {e}")
+            data = {}
     
-    # Get document configuration
-    doc_type = data.get("documentType") or data.get("document_type") or "management-presentation"
+    # Ensure data is a dict
+    if not isinstance(data, dict):
+        print(f"ERROR: Data must be dict, got {type(data)}")
+        data = {}
+    
+    # ========================================
+    # STEP 2: Required Fields Validation
+    # ========================================
+    
+    required_fields = ["companyName", "documentType"]
+    missing_fields = []
+    
+    for field in required_fields:
+        # Check both camelCase and snake_case
+        camel = field
+        snake = ''.join(['_' + c.lower() if c.isupper() else c for c in field]).lstrip('_')
+        
+        if not data.get(camel) and not data.get(snake):
+            missing_fields.append(field)
+    
+    if missing_fields:
+        print(f"WARNING: Missing required fields: {missing_fields}")
+        # Set defaults
+        if "companyName" in missing_fields:
+            data["companyName"] = "Company Name"
+        if "documentType" in missing_fields:
+            data["documentType"] = "management-presentation"
+    
+    # ========================================
+    # STEP 3: Initialize Presentation
+    # ========================================
+    
+    try:
+        prs = Presentation()
+        prs.slide_width = Inches(10)
+        prs.slide_height = Inches(5.625)
+    except Exception as e:
+        print(f"ERROR: Failed to create presentation: {e}")
+        raise
+    
+    # ========================================
+    # STEP 4: Get Configuration
+    # ========================================
+    
+    try:
+        colors = get_theme_colors(theme)
+    except Exception as e:
+        print(f"ERROR: Invalid theme '{theme}': {e}")
+        colors = get_theme_colors("modern-blue")  # Fallback
+    
+    # Get document type (handle both formats)
+    doc_type = (
+        data.get("documentType") or 
+        data.get("document_type") or 
+        "management-presentation"
+    ).lower()
+    
+    # Validate document type
+    valid_doc_types = ["management-presentation", "cim", "teaser"]
+    if doc_type not in valid_doc_types:
+        print(f"WARNING: Invalid document type '{doc_type}', using 'management-presentation'")
+        doc_type = "management-presentation"
+    
     doc_config = DOCUMENT_CONFIGS.get(doc_type, DOCUMENT_CONFIGS["management-presentation"])
     
     # Get industry data
-    primary_vertical = data.get("primaryVertical") or data.get("primary_vertical") or "technology"
-    industry_data = INDUSTRY_DATA.get(primary_vertical, INDUSTRY_DATA["technology"])
+    primary_vertical = (
+        data.get("primaryVertical") or 
+        data.get("primary_vertical") or 
+        "technology"
+    ).lower()
     
-    # Build context
+    industry_data = INDUSTRY_DATA.get(primary_vertical, INDUSTRY_DATA.get("technology", {}))
+    
+    # ========================================
+    # STEP 5: Build Context
+    # ========================================
+    
     context = {
         "doc_config": doc_config,
         "industry_data": industry_data,
         "buyer_types": data.get("targetBuyerType") or data.get("target_buyer_type") or ["strategic"]
     }
     
-    # Determine which slides to generate based on document type (Requirement #1)
-    slides_to_generate = get_slides_for_document_type(doc_type, data)
+    # ========================================
+    # STEP 6: Determine Slides to Generate
+    # ========================================
     
-    print(f"Generating {len(slides_to_generate)} slides for {doc_type}")
-    print(f"Slides: {slides_to_generate}")
+    try:
+        slides_to_generate = get_slides_for_document_type(doc_type, data)
+    except Exception as e:
+        print(f"ERROR: Failed to determine slides: {e}")
+        import traceback
+        traceback.print_exc()
+        # Fallback to basic slide list
+        slides_to_generate = ["title", "disclaimer", "executive-summary", "services", "clients", "financials", "thank-you"]
     
-    # Initialize page counter
+    print(f"=== GENERATION SUMMARY ===")
+    print(f"Document Type: {doc_type}")
+    print(f"Industry: {primary_vertical}")
+    print(f"Theme: {theme}")
+    print(f"Slides to Generate ({len(slides_to_generate)}): {slides_to_generate}")
+    print(f"========================")
+    
+    # ========================================
+    # STEP 7: Generate Slides
+    # ========================================
+    
     page_num = 1
+    slides_created = 0
     
-    # Generate each slide using universal wrapper (Requirement #15, #18)
     for slide_type in slides_to_generate:
-        result = create_slide(slide_type, prs, colors, data, page_num, context)
-        if result is not None:
-            page_num = result
+        try:
+            result = create_slide(slide_type, prs, colors, data, page_num, context)
+            if result is not None:
+                page_num = result
+            slides_created += 1
+            print(f"✓ Created slide: {slide_type}")
+        except Exception as e:
+            print(f"✗ ERROR creating slide '{slide_type}': {e}")
+            import traceback
+            traceback.print_exc()
+            # Continue with next slide instead of failing completely
+            continue
+    
+    print(f"=== GENERATION COMPLETE ===")
+    print(f"Total slides created: {slides_created}/{len(slides_to_generate)}")
+    print(f"=========================")
     
     return prs
+
+
+
+# ============================================================================
+# REQUIREMENT #5: APPENDIX SLIDES
+# ============================================================================
+
+def render_appendix_financials(slide, colors, data, page_num, layout_rec, context):
+    """
+    Render financial appendix with detailed statements
+    Implements Requirement #5
+    """
+    font_adj = layout_rec.get("font_adjustment", -1)  # Smaller font for detailed data
+    
+    add_slide_header(slide, colors, "Appendix A: Detailed Financial Information", font_adj=font_adj)
+    add_slide_footer(slide, colors, page_num)
+    
+    add_section_box(slide, colors, 0.3, 0.95, 9.4, 3.8, "Financial Details")
+    
+    y_pos = 1.5
+    
+    # Revenue breakdown by service
+    revenue_breakdown = data.get("revenueByService") or data.get("revenue_by_service") or ""
+    if revenue_breakdown:
+        tb_title = slide.shapes.add_textbox(Inches(0.5), Inches(y_pos), Inches(9.0), Inches(0.25))
+        tb_title.text_frame.text = "Revenue Breakdown by Service Line"
+        tb_title.text_frame.paragraphs[0].font.size = Pt(adjusted_font(12, font_adj))
+        tb_title.text_frame.paragraphs[0].font.bold = True
+        tb_title.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["primary"])
+        
+        tb_content = slide.shapes.add_textbox(Inches(0.5), Inches(y_pos + 0.3), Inches(9.0), Inches(0.6))
+        tb_content.text_frame.text = truncate_description(revenue_breakdown, 300)
+        tb_content.text_frame.paragraphs[0].font.size = Pt(adjusted_font(10, font_adj))
+        tb_content.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["text"])
+        y_pos += 1.0
+    
+    # Cost structure
+    cost_structure = data.get("costStructure") or data.get("cost_structure") or ""
+    if cost_structure:
+        tb_title = slide.shapes.add_textbox(Inches(0.5), Inches(y_pos), Inches(9.0), Inches(0.25))
+        tb_title.text_frame.text = "Cost Structure Analysis"
+        tb_title.text_frame.paragraphs[0].font.size = Pt(adjusted_font(12, font_adj))
+        tb_title.text_frame.paragraphs[0].font.bold = True
+        tb_title.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["primary"])
+        
+        tb_content = slide.shapes.add_textbox(Inches(0.5), Inches(y_pos + 0.3), Inches(9.0), Inches(0.6))
+        tb_content.text_frame.text = truncate_description(cost_structure, 300)
+        tb_content.text_frame.paragraphs[0].font.size = Pt(adjusted_font(10, font_adj))
+        tb_content.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["text"])
+        y_pos += 1.0
+    
+    # Working capital
+    working_capital = data.get("workingCapital") or data.get("working_capital") or ""
+    if working_capital:
+        tb_title = slide.shapes.add_textbox(Inches(0.5), Inches(y_pos), Inches(9.0), Inches(0.25))
+        tb_title.text_frame.text = "Working Capital Requirements"
+        tb_title.text_frame.paragraphs[0].font.size = Pt(adjusted_font(12, font_adj))
+        tb_title.text_frame.paragraphs[0].font.bold = True
+        tb_title.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["primary"])
+        
+        tb_content = slide.shapes.add_textbox(Inches(0.5), Inches(y_pos + 0.3), Inches(9.0), Inches(0.6))
+        tb_content.text_frame.text = truncate_description(working_capital, 300)
+        tb_content.text_frame.paragraphs[0].font.size = Pt(adjusted_font(10, font_adj))
+        tb_content.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["text"])
+
+
+def render_appendix_case_studies(slide, colors, data, page_num, layout_rec, context):
+    """
+    Render additional case studies in appendix
+    Implements Requirement #5
+    """
+    font_adj = layout_rec.get("font_adjustment", -1)
+    
+    add_slide_header(slide, colors, "Appendix B: Additional Case Studies", font_adj=font_adj)
+    add_slide_footer(slide, colors, page_num)
+    
+    add_section_box(slide, colors, 0.3, 0.95, 9.4, 3.8)
+    
+    # Get case studies beyond the first 2 (which are in main presentation)
+    case_studies = data.get("caseStudies") or []
+    additional_studies = case_studies[2:] if len(case_studies) > 2 else []
+    
+    y_pos = 1.3
+    for i, study in enumerate(additional_studies[:2]):  # Max 2 per slide
+        client = study.get("client", "Client")
+        challenge = study.get("challenge", "")
+        solution = study.get("solution", "")
+        results = study.get("results", "")
+        
+        # Case study title
+        tb_title = slide.shapes.add_textbox(Inches(0.5), Inches(y_pos), Inches(9.0), Inches(0.25))
+        tb_title.text_frame.text = f"Case Study: {truncate_text(client, 60)}"
+        tb_title.text_frame.paragraphs[0].font.size = Pt(adjusted_font(12, font_adj))
+        tb_title.text_frame.paragraphs[0].font.bold = True
+        tb_title.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["primary"])
+        y_pos += 0.3
+        
+        # Compact format
+        content = f"Challenge: {truncate_text(challenge, 100)} | Solution: {truncate_text(solution, 100)} | Results: {truncate_text(results, 100)}"
+        tb_content = slide.shapes.add_textbox(Inches(0.5), Inches(y_pos), Inches(9.0), Inches(0.6))
+        tb_content.text_frame.text = content
+        tb_content.text_frame.paragraphs[0].font.size = Pt(adjusted_font(9, font_adj))
+        tb_content.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["text"])
+        y_pos += 0.9
+
+
+def render_appendix_team_bios(slide, colors, data, page_num, layout_rec, context):
+    """
+    Render detailed team biographies in appendix
+    Implements Requirement #5
+    """
+    font_adj = layout_rec.get("font_adjustment", -1)
+    
+    add_slide_header(slide, colors, "Appendix C: Detailed Team Biographies", font_adj=font_adj)
+    add_slide_footer(slide, colors, page_num)
+    
+    add_section_box(slide, colors, 0.3, 0.95, 9.4, 3.8)
+    
+    # Parse leadership team
+    leadership_text = data.get("leadershipTeam") or data.get("leadership_team") or ""
+    team_members = parse_pipe_separated(leadership_text, 4)
+    
+    y_pos = 1.3
+    for member in team_members:
+        if member and len(member) >= 2:
+            name = member[0] if len(member) > 0 else ""
+            title = member[1] if len(member) > 1 else ""
+            
+            # Member info
+            tb = slide.shapes.add_textbox(Inches(0.5), Inches(y_pos), Inches(9.0), Inches(0.4))
+            tb.text_frame.text = f"• {name} - {title}"
+            tb.text_frame.paragraphs[0].font.size = Pt(adjusted_font(11, font_adj))
+            tb.text_frame.paragraphs[0].font.bold = True
+            tb.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["text"])
+            y_pos += 0.5
 

@@ -392,6 +392,19 @@ def get_slides_for_document_type(document_type: str, data: dict) -> list:
     if "risks" in optional and data.get("riskFactors"):
         slides.append("risks")
     
+    # REQUIREMENT #5: Add appendix slides if requested
+    if data.get("includeFinancialAppendix") or data.get("include_financial_appendix"):
+        slides.append("appendix-financials")
+    
+    if data.get("includeAdditionalCaseStudies") or data.get("include_additional_case_studies"):
+        # Only add if there are actually additional case studies (more than 2)
+        case_studies = data.get("caseStudies") or []
+        if len(case_studies) > 2:
+            slides.append("appendix-case-studies")
+    
+    if data.get("includeTeamBios") or data.get("include_team_bios"):
+        slides.append("appendix-team-bios")
+    
     return slides
 
 
