@@ -18,10 +18,14 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from models import (
+'''from models import (
     VERSION, PROFESSIONAL_TEMPLATES, INDUSTRY_DATA, DOCUMENT_CONFIGS,
     GeneratePPTXRequest, GeneratePPTXRequestWrapper
+)'''
+from models import (
+    VERSION, PROFESSIONAL_TEMPLATES, INDUSTRY_DATA, DOCUMENT_CONFIGS
 )
+
 from pptx_generator import generate_presentation
 from ai_layout_engine import get_usage_stats, reset_usage_stats
 

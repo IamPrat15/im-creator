@@ -351,3 +351,37 @@ def get_default_layout_recommendation(slide_type: str, data_preview: dict) -> di
         "content_density": "medium",
         "primary_emphasis": "text"
     })
+def safe_float(value, default: float = 0.0) -> float:
+    """Safely convert value to float"""
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def safe_int(value, default: int = 0) -> int:
+    """Safely convert value to int"""
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
+def extract_percentage(text: str) -> Optional[float]:
+    """Extract percentage value from text (e.g., '25%' -> 25.0)"""
+    if not text:
+        return None
+    
+    import re
+    match = re.search(r'(\d+(?:\.\d+)?)\s*%', str(text))
+    if match:
+        return float(match.group(1))
+    
+    try:
+        return float(text)
+    except (ValueError, TypeError):
+        return None
