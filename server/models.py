@@ -20,41 +20,39 @@ from datetime import datetime
 # ============================================================================
 VERSION = {
     "major": 7,
-    "minor": 2,
+    "minor": 1,
     "patch": 0,
-    "string": "7.2.0",
-    "full": "v7.2.0",
-    "build_date": "2026-02-03",
+    "string": "7.1.0",
+    "full": "v7.1.0",
+    "build_date": "2026-02-04",
     "history": [
         {
-            "version": "7.2.0",
-            "date": "2026-02-03",
-            "type": "major",
-            "changes": [
-                "Complete Python backend rewrite",
-                "python-pptx for reliable chart generation",
-                "FastAPI for modern async API",
-                "Native pie/donut/bar charts",
-                "All AI layout features preserved"
-            ]
-        },
-        {
-            "version": "7.1.1",
-            "date": "2026-02-03",
-            "type": "patch",
-            "changes": ["Fixed chart API compatibility", "Better error handling"]
-        },
-        {
             "version": "7.1.0",
-            "date": "2026-02-03",
+            "date": "2026-02-04",
             "type": "minor",
-            "changes": ["Universal createSlide() wrapper", "AI recommendations applied"]
+            "changes": [
+                "Universal createSlide() wrapper function",
+                "AI layout recommendations applied to all slide types",
+                "Dedicated render functions (executive summary, services, clients, financials, case study, growth, market position)",
+                "Chart helper addChartByType() for unified chart rendering",
+                "Document type differentiation (CIM, Teaser, Management Presentation)",
+                "Target buyer type affecting slide content",
+                "Industry-specific content and terminology",
+                "Market Position and Synergies slides added"
+            ]
         },
         {
             "version": "7.0.0",
             "date": "2026-02-03",
             "type": "major",
-            "changes": ["AI-powered layout engine", "Larger fonts", "Diverse charts"]
+            "changes": [
+                "AI-powered layout engine with analyze_data_for_layout()",
+                "Larger fonts for better readability (12pt body minimum)",
+                "Diverse chart types: pie, donut, bar, timeline, progress, stacked-bar",
+                "50 professional templates across 6 categories",
+                "6 industry verticals with specific benchmarks",
+                "Dynamic font adjustment based on content density"
+            ]
         }
     ]
 }

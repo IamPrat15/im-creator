@@ -351,37 +351,126 @@ def get_default_layout_recommendation(slide_type: str, data_preview: dict) -> di
         "content_density": "medium",
         "primary_emphasis": "text"
     })
-def safe_float(value, default: float = 0.0) -> float:
-    """Safely convert value to float"""
-    if value is None:
-        return default
-    try:
-        return float(value)
-    except (ValueError, TypeError):
-        return default
 
 
-def safe_int(value, default: int = 0) -> int:
-    """Safely convert value to int"""
-    if value is None:
-        return default
-    try:
-        return int(value)
-    except (ValueError, TypeError):
-        return default
+# ============================================================================
+# REQUIREMENT 1: DOCUMENT TYPE HELPERS
+# ============================================================================
 
-
-def extract_percentage(text: str) -> Optional[float]:
-    """Extract percentage value from text (e.g., '25%' -> 25.0)"""
-    if not text:
-        return None
+def get_slides_for_document_type(document_type: str, data: dict) -> list:
+    """
+    Determine which slides to generate based on document type.
+    Implements Requirement #1: Document Type differentiation
+    """
+    from models import DOCUMENT_CONFIGS
     
-    import re
-    match = re.search(r'(\d+(?:\.\d+)?)\s*%', str(text))
-    if match:
-        return float(match.group(1))
+    config = DOCUMENT_CONFIGS.get(document_type, DOCUMENT_CONFIGS["management-presentation"])
     
-    try:
-        return float(text)
-    except (ValueError, TypeError):
-        return None
+    slides = []
+    
+    # Always add required slides
+    slides.extend(config["required_slides"])
+    
+    # Add optional slides based on available data
+    optional = config["optional_slides"]
+    
+    if "leadership" in optional and data.get("founderName"):
+        slides.append("leadership")
+    
+    if "case-studies" in optional and (data.get("caseStudies") or data.get("cs1Client")):
+        slides.append("case-studies")
+    
+    if "growth" in optional and (data.get("growthDrivers") or data.get("shortTermGoals")):
+        slides.append("growth")
+    
+    if "synergies" in optional and (data.get("synergiesStrategic") or data.get("synergiesFinancial")):
+        slides.append("synergies")
+    
+    if "market-position" in optional and (data.get("marketSize") or data.get("competitivePositioning")):
+        slides.append("market-position")
+    
+    if "risks" in optional and data.get("riskFactors"):
+        slides.append("risks")
+    
+    return slides
+
+
+# ============================================================================
+# REQUIREMENT 2: TARGET BUYER TYPE HELPERS
+# ============================================================================
+
+def get_buyer_specific_content(buyer_types: list, slide_type: str, data: dict) -> dict:
+    """
+    Get buyer-specific content modifications.
+    Implements Requirement #2: Target Buyer Type affecting content
+    """
+    if not buyer_types:
+        buyer_types = ["strategic"]  # Default
+    
+    content_mods = {
+        "emphasis": [],
+        "highlights": [],
+        "metrics_priority": []
+    }
+    
+    # Strategic Buyer Focus
+    if "strategic" in buyer_types:
+        content_mods["emphasis"].append("synergies")
+        content_mods["emphasis"].append("market-expansion")
+        content_mods["highlights"].append("Client relationships & retention")
+        content_mods["highlights"].append("Market position & competitive moats")
+        content_mods["metrics_priority"] = ["revenue_growth", "client_concentration", "market_share"]
+    
+    # Financial Investor Focus
+    if "financial" in buyer_types:
+        content_mods["emphasis"].append("returns")
+        content_mods["emphasis"].append("profitability")
+        content_mods["highlights"].append("EBITDA margins & cash flow")
+        content_mods["highlights"].append("Growth potential & scalability")
+        content_mods["metrics_priority"] = ["ebitda_margin", "revenue_growth", "profit_margin"]
+    
+    # International Acquirer Focus
+    if "international" in buyer_types:
+        content_mods["emphasis"].append("market-entry")
+        content_mods["emphasis"].append("local-expertise")
+        content_mods["highlights"].append("Local market knowledge & relationships")
+        content_mods["highlights"].append("Regulatory compliance & certifications")
+        content_mods["metrics_priority"] = ["market_size", "growth_rate", "client_diversity"]
+    
+    return content_mods
+
+
+# ============================================================================
+# REQUIREMENT 3: INDUSTRY-SPECIFIC CONTENT HELPERS
+# ============================================================================
+
+def get_industry_specific_content(vertical: str, slide_type: str) -> dict:
+    """
+    Get industry-specific terminology and benchmarks.
+    Implements Requirement #3: Industry-specific content
+    """
+    from models import INDUSTRY_DATA
+    
+    industry_data = INDUSTRY_DATA.get(vertical, INDUSTRY_DATA["technology"])
+    
+    content = {
+        "terminology": industry_data.get("terminology", {}),
+        "benchmarks": industry_data.get("benchmarks", {}),
+        "context": "",
+        "emphasis": []
+    }
+    
+    # Add slide-specific industry context
+    if slide_type == "executive-summary":
+        content["context"] = f"Leading player in the {industry_data['name']} sector"
+        content["emphasis"] = industry_data.get("key_strengths", [])[:3]
+    
+    elif slide_type == "market-position":
+        content["benchmarks_text"] = f"Industry average: {industry_data['benchmarks'].get('growth_rate', 'N/A')}"
+        content["emphasis"] = ["market-leadership", "industry-expertise"]
+    
+    elif slide_type == "growth":
+        content["drivers"] = industry_data.get("growth_drivers", [])
+        content["emphasis"] = ["industry-trends", "market-opportunity"]
+    
+    return content

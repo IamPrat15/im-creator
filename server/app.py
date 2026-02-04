@@ -272,6 +272,204 @@ async def generate_pptx(request: GenerateRequest):
             }
         )
 # ============================================================================
+# REQUIREMENT #12: WORD Q&A EXPORT ENDPOINT
+# ============================================================================
+
+class ExportQARequest(BaseModel):
+    data: Dict[str, Any]
+    questionnaire: Optional[Dict[str, Any]] = None
+
+@app.post("/api/export-qa-word")
+async def export_qa_word(request: ExportQARequest):
+    """
+    Export Questions and Answers to Word format
+    Implements Requirement #12
+    """
+    try:
+        from docx import Document
+        from docx.shared import Pt, RGBColor as DocxRGBColor
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        
+        # Create document
+        doc = Document()
+        
+        # Title
+        title = doc.add_heading('Information Memorandum - Questions & Answers', 0)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # Metadata
+        company = request.data.get("companyName") or "Company"
+        codename = request.data.get("projectCodename") or "Project"
+        
+        doc.add_paragraph(f"Company: {company}")
+        doc.add_paragraph(f"Project: {codename}")
+        doc.add_paragraph(f"Generated: {datetime.now().strftime('%B %d, %Y')}")
+        doc.add_paragraph()  # Blank line
+        
+        # Add sections
+        sections = [
+            ("Project Setup", [
+                ("Project Codename", request.data.get("projectCodename")),
+                ("Company Name", request.data.get("companyName")),
+                ("Document Type", request.data.get("documentType")),
+                ("Advisor", request.data.get("advisor")),
+                ("Presentation Date", request.data.get("presentationDate")),
+            ]),
+            ("Company Overview", [
+                ("Founded Year", request.data.get("foundedYear")),
+                ("Headquarters", request.data.get("headquarters")),
+                ("Company Description", request.data.get("companyDescription")),
+                ("Full-Time Employees", request.data.get("employeeCountFT")),
+                ("Investment Highlights", request.data.get("investmentHighlights")),
+            ]),
+            ("Leadership", [
+                ("Founder Name", request.data.get("founderName")),
+                ("Founder Title", request.data.get("founderTitle")),
+                ("Years of Experience", request.data.get("founderExperience")),
+                ("Education", request.data.get("founderEducation")),
+                ("Leadership Team", request.data.get("leadershipTeam")),
+            ]),
+            ("Services & Products", [
+                ("Service Lines", request.data.get("serviceLines")),
+                ("Products", request.data.get("products")),
+                ("Tech Partnerships", request.data.get("techPartnerships")),
+            ]),
+            ("Clients", [
+                ("Primary Vertical", request.data.get("primaryVertical")),
+                ("Top Clients", request.data.get("topClients")),
+                ("Top 10 Concentration", request.data.get("top10Concentration")),
+                ("Net Revenue Retention", request.data.get("netRetention")),
+            ]),
+            ("Financials", [
+                ("Currency", request.data.get("currency")),
+                ("Revenue FY24", request.data.get("revenueFY24")),
+                ("Revenue FY25", request.data.get("revenueFY25")),
+                ("Revenue FY26P", request.data.get("revenueFY26P")),
+                ("EBITDA Margin FY25", request.data.get("ebitdaMarginFY25")),
+                ("Gross Margin", request.data.get("grossMargin")),
+            ]),
+            ("Growth Strategy", [
+                ("Growth Drivers", request.data.get("growthDrivers")),
+                ("Competitive Advantages", request.data.get("competitiveAdvantages")),
+                ("Short-Term Goals", request.data.get("shortTermGoals")),
+                ("Medium-Term Goals", request.data.get("mediumTermGoals")),
+            ]),
+        ]
+        
+        for section_name, questions in sections:
+            doc.add_heading(section_name, level=1)
+            
+            for question, answer in questions:
+                if answer:
+                    # Question
+                    q_para = doc.add_paragraph()
+                    q_run = q_para.add_run(f"Q: {question}")
+                    q_run.bold = True
+                    q_run.font.size = Pt(11)
+                    
+                    # Answer
+                    a_para = doc.add_paragraph()
+                    a_run = a_para.add_run(f"A: {answer}")
+                    a_run.font.size = Pt(10)
+                    
+                    doc.add_paragraph()  # Blank line
+        
+        # Save to temp file
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{codename}_QA_{timestamp}.docx"
+        filepath = TEMP_DIR / filename
+        doc.save(str(filepath))
+        
+        # Return file
+        return FileResponse(
+            path=str(filepath),
+            filename=filename,
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+        
+    except Exception as e:
+        print(f"Word export error: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
+# REQUIREMENT #13: PDF EXPORT ENDPOINT
+# ============================================================================
+
+@app.post("/api/export-pdf")
+async def export_pdf(request: Dict[str, Any]):
+    """
+    Export presentation to PDF format
+    Implements Requirement #13 (partial - basic implementation)
+    """
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        
+        # Get data
+        data = request.get("data", {})
+        
+        # Generate filename
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        codename = data.get("projectCodename") or "Project"
+        filename = f"{codename}_{timestamp}.pdf"
+        filepath = TEMP_DIR / filename
+        
+        # Create PDF
+        doc = SimpleDocTemplate(str(filepath), pagesize=letter)
+        story = []
+        styles = getSampleStyleSheet()
+        
+        # Title
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#2B579A'),
+            spaceAfter=30,
+            alignment=1  # Center
+        )
+        
+        company = data.get("companyName") or "Company Name"
+        story.append(Paragraph(company, title_style))
+        story.append(Spacer(1, 0.5*inch))
+        
+        # Add sections
+        sections = [
+            ("Company Overview", data.get("companyDescription") or ""),
+            ("Investment Highlights", data.get("investmentHighlights") or ""),
+            ("Services", data.get("serviceLines") or ""),
+            ("Growth Strategy", data.get("growthDrivers") or ""),
+        ]
+        
+        for section_title, content in sections:
+            if content:
+                story.append(Paragraph(section_title, styles['Heading2']))
+                story.append(Spacer(1, 0.2*inch))
+                story.append(Paragraph(content, styles['Normal']))
+                story.append(Spacer(1, 0.3*inch))
+        
+        # Build PDF
+        doc.build(story)
+        
+        # Return file
+        return FileResponse(
+            path=str(filepath),
+            filename=filename,
+            media_type="application/pdf"
+        )
+        
+    except Exception as e:
+        print(f"PDF export error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
 # CHAT ENDPOINT (for AI assistant)
 # ============================================================================
 
