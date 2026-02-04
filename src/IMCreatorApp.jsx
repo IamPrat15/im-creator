@@ -152,6 +152,38 @@ const defaultQuestionnaire = {
       ]
     },
     {
+      id: 'appendix-options',
+      name: 'Appendix',
+      icon: '📎',
+      description: 'Optional detailed information',
+      questions: [
+        {
+          id: 'includeFinancialAppendix',
+          type: 'checkbox',
+          label: 'Include Detailed Financial Statements',
+          helpText: 'Adds comprehensive financial breakdown in appendix',
+          defaultValue: false,
+          order: 1
+        },
+        {
+          id: 'includeAdditionalCaseStudies',
+          type: 'checkbox',
+          label: 'Include All Case Studies in Appendix',
+          helpText: 'Adds case studies 3+ to appendix (requires 3+ case studies)',
+          defaultValue: false,
+          order: 2
+        },
+        {
+          id: 'includeTeamBios',
+          type: 'checkbox',
+          label: 'Include Detailed Team Biographies',
+          helpText: 'Adds comprehensive team bios in appendix',
+          defaultValue: false,
+          order: 3
+        }
+      ]
+    },
+    {
       id: 'risk-factors',
       name: 'Risk Factors',
       icon: '⚠️',
