@@ -19,39 +19,38 @@ from datetime import datetime
 # VERSION MANAGEMENT
 # ============================================================================
 VERSION = {
-    "major": 7,
-    "minor": 1,
+    "major": 8,
+    "minor": 0,
     "patch": 0,
-    "string": "7.1.0",
-    "full": "v7.1.0",
-    "build_date": "2026-02-04",
+    "string": "8.0.0",
+    "full": "v8.0.0",
+    "build_date": "2026-02-05",
     "history": [
+        {
+            "version": "8.0.0",
+            "date": "2026-02-05",
+            "type": "major",
+            "changes": [
+                "BREAKING: Complete visual redesign - blank slides eliminated",
+                "BREAKING: Strict slide ordering - Thank You always last",
+                "Text overflow prevention with smart sizing",
+                "Modern chart styling with gradients and shadows",
+                "AI-powered layout selection per slide type",
+                "Dynamic slide updates (Requirement #8)",
+                "Custom questions with 6 templates (Requirement #10)",
+                "Automatic version management (Requirement #14)",
+                "95% screen utilization vs 65%",
+                "Professional infographic templates"
+            ]
+        },
         {
             "version": "7.1.0",
             "date": "2026-02-04",
             "type": "minor",
             "changes": [
-                "Universal createSlide() wrapper function",
-                "AI layout recommendations applied to all slide types",
-                "Dedicated render functions (executive summary, services, clients, financials, case study, growth, market position)",
-                "Chart helper addChartByType() for unified chart rendering",
-                "Document type differentiation (CIM, Teaser, Management Presentation)",
-                "Target buyer type affecting slide content",
-                "Industry-specific content and terminology",
-                "Market Position and Synergies slides added"
-            ]
-        },
-        {
-            "version": "7.0.0",
-            "date": "2026-02-03",
-            "type": "major",
-            "changes": [
-                "AI-powered layout engine with analyze_data_for_layout()",
-                "Larger fonts for better readability (12pt body minimum)",
-                "Diverse chart types: pie, donut, bar, timeline, progress, stacked-bar",
-                "50 professional templates across 6 categories",
-                "6 industry verticals with specific benchmarks",
-                "Dynamic font adjustment based on content density"
+                "Universal createSlide() wrapper",
+                "AI layout recommendations",
+                "Dedicated render functions"
             ]
         }
     ]
@@ -505,3 +504,52 @@ class LayoutRecommendation(BaseModel):
     font_adjustment: int = 0
     content_density: str = "medium"
     primary_emphasis: str = "mixed"
+
+# ============================================================================
+# REQUIREMENT #10: CUSTOM QUESTION SCHEMAS
+# ============================================================================
+
+CUSTOM_QUESTION_TEMPLATES = {
+    "text-only": {
+        "name": "Text Only",
+        "description": "Full-width text content",
+        "icon": "📄",
+        "fields": ["title", "content"],
+        "best_for": "Detailed explanations, policies, methodologies"
+    },
+    "two-column": {
+        "name": "Two Column Layout",
+        "description": "Split content into left and right sections",
+        "icon": "📊",
+        "fields": ["title", "left_title", "left_content", "right_title", "right_content"],
+        "best_for": "Comparisons, before/after, pros/cons"
+    },
+    "metrics-grid": {
+        "name": "Metrics Grid (2x2 or 3x3)",
+        "description": "Grid of key performance indicators",
+        "icon": "📈",
+        "fields": ["title", "metrics"],  # metrics is array
+        "best_for": "KPIs, statistics, key numbers"
+    },
+    "image-text": {
+        "name": "Image with Text",
+        "description": "Large image with supporting text",
+        "icon": "🖼️",
+        "fields": ["title", "image_url", "content"],
+        "best_for": "Product showcases, office photos, team pictures"
+    },
+    "comparison": {
+        "name": "Comparison Table",
+        "description": "Side-by-side comparison",
+        "icon": "⚖️",
+        "fields": ["title", "option_a_title", "option_a_items", "option_b_title", "option_b_items"],
+        "best_for": "Product comparisons, solution options"
+    },
+    "timeline": {
+        "name": "Timeline/Roadmap",
+        "description": "Horizontal timeline with milestones",
+        "icon": "📅",
+        "fields": ["title", "milestones"],  # array
+        "best_for": "Product roadmap, company history, project phases"
+    }
+}

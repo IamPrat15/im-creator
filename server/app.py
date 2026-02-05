@@ -9,6 +9,11 @@ import os
 import tempfile
 import uuid
 import base64
+
+from usage_tracker import get_tracker
+from state_manager import PresentationStateManager
+from fastapi.responses import Response
+
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -627,6 +632,37 @@ async def startup_event():
     print(f"  ✓ 6 industry verticals")
     print(f"  ✓ 3 document types")
     print(f"{'='*60}\n")
+
+@app.get("/api/usage")
+async def get_usage():
+    """Get Anthropic API usage statistics"""
+    tracker = get_tracker()
+    return tracker.get_stats()
+
+@app.get("/api/usage/export")
+async def export_usage():
+    """Export usage data as CSV"""
+    tracker = get_tracker()
+    csv_data = tracker.export_csv()
+    return Response(content=csv_data, media_type="text/csv",
+                   headers={"Content-Disposition": "attachment; filename=usage.csv"})
+
+@app.post("/api/usage/reset")
+async def reset_usage():
+    """Reset usage statistics"""
+    tracker = get_tracker()
+    tracker.reset()
+    return {"success": True, "message": "Usage statistics reset"}
+
+@app.post("/api/update-presentation")
+async def update_presentation(request: dict):
+    """Dynamic slide updates - Requirement #8"""
+    manager = PresentationStateManager()
+    changed = manager.detect_changes(request["old_data"], request["new_data"])
+    if not changed:
+        return {"message": "No changes detected"}
+    affected = manager.get_affected_slides(changed)
+    return {"slides_updated": len(affected), "affected_slides": affected}
 
 # ============================================================================
 # MAIN

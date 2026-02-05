@@ -47,6 +47,111 @@ ABBREVIATIONS = {
 }
 
 # ============================================================================
+# V8.0: TEXT OVERFLOW PREVENTION
+# ============================================================================
+
+def calculate_text_metrics(text: str, width_inches: float, font_size: int) -> dict:
+    """
+    Calculate if text will fit in the given space
+    Returns metrics and recommended font size
+    """
+    # Approximate character width in inches at given font size
+    # This is empirical: 1pt = ~0.007 inches width per character
+    char_width = font_size * 0.007
+    
+    # Calculate max characters per line
+    chars_per_line = int(width_inches / char_width)
+    
+    # Calculate number of lines needed
+    words = text.split()
+    lines_needed = 1
+    current_line_length = 0
+    
+    for word in words:
+        word_length = len(word) + 1  # +1 for space
+        if current_line_length + word_length > chars_per_line:
+            lines_needed += 1
+            current_line_length = word_length
+        else:
+            current_line_length += word_length
+    
+    # Determine if text will fit (assume max 15 lines for readability)
+    will_fit = lines_needed <= 15
+    
+    # Calculate recommended font size if doesn't fit
+    if not will_fit:
+        # Scale down font to fit
+        scale_factor = 15 / lines_needed
+        recommended_size = max(9, int(font_size * scale_factor))
+    else:
+        recommended_size = font_size
+    
+    return {
+        "chars_per_line": chars_per_line,
+        "lines_needed": lines_needed,
+        "will_fit": will_fit,
+        "recommended_size": recommended_size,
+        "max_chars": chars_per_line * 15  # For truncation
+    }
+
+
+def get_responsive_font_size(content_type: str, content_length: int, base_size: int = 12) -> int:
+    """
+    Calculate responsive font size based on content type and length
+    
+    Args:
+        content_type: "title", "subtitle", "section_header", "body", "caption", "metric"
+        content_length: number of characters in content
+        base_size: base font size (optional, uses defaults per type)
+    
+    Returns:
+        Optimal font size in points
+    """
+    # Base sizes per content type
+    BASE_SIZES = {
+        "title": 24,
+        "subtitle": 14,
+        "section_header": 16,
+        "body": 12,
+        "body_large": 14,
+        "body_small": 10,
+        "caption": 10,
+        "metric": 32,
+        "metric_medium": 24,
+        "metric_small": 18
+    }
+    
+    base = BASE_SIZES.get(content_type, base_size)
+    
+    # Scaling rules based on content length
+    if content_type in ["body", "body_large"]:
+        if content_length > 500:
+            scale = 0.75
+        elif content_length > 300:
+            scale = 0.85
+        elif content_length > 150:
+            scale = 0.95
+        else:
+            scale = 1.0
+    
+    elif content_type in ["title", "section_header"]:
+        if content_length > 60:
+            scale = 0.75
+        elif content_length > 40:
+            scale = 0.85
+        else:
+            scale = 1.0
+    
+    else:
+        scale = 1.0
+    
+    # Apply scale
+    final_size = int(base * scale)
+    
+    # Enforce minimum readability (never below 9pt)
+    return max(9, final_size)
+
+# ============================================================================
 # TEXT UTILITIES
 # ============================================================================
 
@@ -359,53 +464,86 @@ def get_default_layout_recommendation(slide_type: str, data_preview: dict) -> di
 
 def get_slides_for_document_type(document_type: str, data: dict) -> list:
     """
-    Determine which slides to generate based on document type.
-    Implements Requirement #1: Document Type differentiation
+    FIXED v8.0: Strict slide ordering with Thank You ALWAYS last
+    Determines which slides to generate based on document type
     """
     from models import DOCUMENT_CONFIGS
     
-    config = DOCUMENT_CONFIGS.get(document_type, DOCUMENT_CONFIGS["management-presentation"])
+    # STRICT SLIDE ORDER - Thank You NOT in this list (added at end)
+    MAIN_SLIDE_ORDER = [
+        "title",
+        "disclaimer",
+        "toc",
+        "executive-summary",
+        "investment-highlights",
+        "company-overview",
+        "services",
+        "clients",
+        "financials",
+        "case-study",
+        "growth",
+        "market-position",
+        "synergies",
+        "risks"
+    ]
     
+    # Appendix slides order
+    APPENDIX_ORDER = [
+        "appendix-financials",
+        "appendix-case-studies",
+        "appendix-team-bios"
+    ]
+    
+    # Get document configuration
+    config = DOCUMENT_CONFIGS.get(document_type, DOCUMENT_CONFIGS["management-presentation"])
+    required_slides = set(config["required_slides"])
+    optional_slides = set(config["optional_slides"])
+    
+    # Build ordered list
     slides = []
     
-    # Always add required slides
-    slides.extend(config["required_slides"])
+    # Add main slides in strict order
+    for slide_type in MAIN_SLIDE_ORDER:
+        if slide_type in required_slides:
+            slides.append(slide_type)
+        elif slide_type in optional_slides:
+            if should_include_optional_slide(slide_type, data):
+                slides.append(slide_type)
     
-    # Add optional slides based on available data
-    optional = config["optional_slides"]
+    # Add appendix slides in order
+    for slide_type in APPENDIX_ORDER:
+        if should_include_optional_slide(slide_type, data):
+            slides.append(slide_type)
     
-    if "leadership" in optional and data.get("founderName"):
-        slides.append("leadership")
+    # CRITICAL: ALWAYS add thank-you at the END
+    slides.append("thank-you")
     
-    if "case-studies" in optional and (data.get("caseStudies") or data.get("cs1Client")):
-        slides.append("case-studies")
-    
-    if "growth" in optional and (data.get("growthDrivers") or data.get("shortTermGoals")):
-        slides.append("growth")
-    
-    if "synergies" in optional and (data.get("synergiesStrategic") or data.get("synergiesFinancial")):
-        slides.append("synergies")
-    
-    if "market-position" in optional and (data.get("marketSize") or data.get("competitivePositioning")):
-        slides.append("market-position")
-    
-    if "risks" in optional and data.get("riskFactors"):
-        slides.append("risks")
-    
-    # REQUIREMENT #5: Add appendix slides if requested
-    if data.get("includeFinancialAppendix") or data.get("include_financial_appendix"):
-        slides.append("appendix-financials")
-    
-    if data.get("includeAdditionalCaseStudies") or data.get("include_additional_case_studies"):
-        # Only add if there are actually additional case studies (more than 2)
-        case_studies = data.get("caseStudies") or []
-        if len(case_studies) > 2:
-            slides.append("appendix-case-studies")
-    
-    if data.get("includeTeamBios") or data.get("include_team_bios"):
-        slides.append("appendix-team-bios")
+    print(f"[v8.0] Slide order for {document_type}: {slides}")
     
     return slides
+
+
+def should_include_optional_slide(slide_type: str, data: dict) -> bool:
+    """Helper to check if optional slide should be included based on data"""
+    
+    inclusion_rules = {
+        "toc": lambda d: d.get("documentType") == "cim",
+        "leadership": lambda d: bool(d.get("founderName")),
+        "company-overview": lambda d: bool(d.get("companyDescription")),
+        "case-study": lambda d: bool(d.get("caseStudies") or d.get("cs1Client")),
+        "growth": lambda d: bool(d.get("growthDrivers") or d.get("shortTermGoals")),
+        "synergies": lambda d: bool(d.get("synergiesStrategic") or d.get("synergiesFinancial")),
+        "market-position": lambda d: bool(d.get("marketSize") or d.get("competitiveAdvantages")),
+        "risks": lambda d: bool(d.get("riskFactors")),
+        "appendix-financials": lambda d: bool(d.get("includeFinancialAppendix")),
+        "appendix-case-studies": lambda d: bool(d.get("includeAdditionalCaseStudies") and len(d.get("caseStudies", [])) > 2),
+        "appendix-team-bios": lambda d: bool(d.get("includeTeamBios")),
+    }
+    
+    if slide_type in inclusion_rules:
+        return inclusion_rules[slide_type](data)
+    
+    return True  # Include by default
 
 
 # ============================================================================

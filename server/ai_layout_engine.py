@@ -1,8 +1,9 @@
 """
 IM Creator - AI Layout Engine
-Version: 7.2.0
+Version: 8.0.0
 
 Uses Claude AI to analyze data and recommend optimal layouts for each slide.
+NOW WITH INTEGRATED USAGE TRACKING!
 """
 
 import os
@@ -12,9 +13,10 @@ from datetime import datetime
 import anthropic
 
 from utils import build_data_preview, get_default_layout_recommendation
+from usage_tracker import get_tracker  # NEW: Import usage tracker
 
 # ============================================================================
-# USAGE TRACKING
+# LEGACY USAGE TRACKING (KEPT FOR BACKWARD COMPATIBILITY)
 # ============================================================================
 usage_stats = {
     "total_input_tokens": 0,
@@ -34,7 +36,7 @@ PRICING = {
 
 
 def track_usage(model: str, input_tokens: int, output_tokens: int, purpose: str) -> float:
-    """Track API usage and costs"""
+    """Track API usage and costs (LEGACY - kept for compatibility)"""
     pricing = PRICING.get(model, PRICING["claude-3-haiku-20240307"])
     cost_usd = (input_tokens / 1000 * pricing["input"]) + (output_tokens / 1000 * pricing["output"])
     
@@ -60,7 +62,7 @@ def track_usage(model: str, input_tokens: int, output_tokens: int, purpose: str)
 
 
 def get_usage_stats() -> dict:
-    """Get current usage statistics"""
+    """Get current usage statistics (LEGACY)"""
     return {
         **usage_stats,
         "total_cost_usd": f"{usage_stats['total_cost_usd']:.4f}"
@@ -68,7 +70,7 @@ def get_usage_stats() -> dict:
 
 
 def reset_usage_stats():
-    """Reset usage statistics"""
+    """Reset usage statistics (LEGACY)"""
     global usage_stats
     usage_stats = {
         "total_input_tokens": 0,
@@ -142,11 +144,21 @@ Guidelines:
             messages=[{"role": "user", "content": prompt}]
         )
         
+        # LEGACY tracking
         track_usage(
             "claude-3-haiku-20240307",
             response.usage.input_tokens,
             response.usage.output_tokens,
             f"AI Layout: {slide_type}"
+        )
+        
+        # NEW: Track with new usage tracker
+        tracker = get_tracker()
+        tracker.track_call(
+            model="claude-3-haiku-20240307",
+            input_tokens=response.usage.input_tokens,
+            output_tokens=response.usage.output_tokens,
+            purpose=f"AI Layout: {slide_type}"
         )
         
         text = response.content[0].text
@@ -170,6 +182,8 @@ def analyze_data_for_layout_sync(data: dict, slide_type: str) -> dict:
     """
     Synchronous version of analyze_data_for_layout.
     Used when async is not available.
+    
+    NOW WITH INTEGRATED USAGE TRACKING!
     """
     # Build data preview
     try:
@@ -218,12 +232,26 @@ Guidelines:
             messages=[{"role": "user", "content": prompt}]
         )
         
+        # ====================================================================
+        # CRITICAL: USAGE TRACKING INTEGRATION
+        # ====================================================================
+        # Track with LEGACY tracker (for backward compatibility)
         track_usage(
             "claude-3-haiku-20240307",
             response.usage.input_tokens,
             response.usage.output_tokens,
             f"AI Layout: {slide_type}"
         )
+        
+        # Track with NEW v8.0 usage tracker (for frontend Usage button)
+        tracker = get_tracker()
+        tracker.track_call(
+            model="claude-3-haiku-20240307",
+            input_tokens=response.usage.input_tokens,
+            output_tokens=response.usage.output_tokens,
+            purpose=f"analyze_layout_{slide_type}"
+        )
+        # ====================================================================
         
         text = response.content[0].text
         
