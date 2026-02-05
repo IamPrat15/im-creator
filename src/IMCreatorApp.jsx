@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { generateIM, generatePPTX, saveDraft, checkHealth, downloadBase64File } from './api';
+import { generateIM, generatePPTX, saveDraft, checkHealth, downloadBase64File, getTemplates, getUsageStats, exportUsageCSV, resetUsageStats, exportQAWord, downloadBlob } from './api';
 
 // ============================================================================
 // IMCreatorApp v6.0 - Complete Production Build
@@ -18,7 +18,7 @@ import { generateIM, generatePPTX, saveDraft, checkHealth, downloadBase64File } 
 // Auto-logout configuration
 const AUTO_LOGOUT_TIMEOUT = 15 * 60 * 1000; // 15 minutes
 const AUTO_LOGOUT_WARNING = 14 * 60 * 1000; // Warning at 14 minutes
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+//const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // ============================================================================
 // QUESTIONNAIRE CONFIGURATION
@@ -353,8 +353,7 @@ export default function IMCreatorApp({ user, onLogout }) {
       .catch(() => setApiStatus('disconnected'));
     
     // Fetch templates (v6)
-    fetch(`${API_BASE}/api/templates`)
-      .then(res => res.json())
+    getTemplates()
       .then(data => {
         setTemplates(data);
         // Update questionnaire with dynamic templates
@@ -541,8 +540,7 @@ export default function IMCreatorApp({ user, onLogout }) {
   const fetchUsageData = async () => {
     setUsageLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/api/usage`);
-      const data = await response.json();
+      const data = await getUsageStats();
       setUsageData(data);
     } catch (error) {
       console.error('Failed to fetch usage data:', error);
@@ -552,16 +550,10 @@ export default function IMCreatorApp({ user, onLogout }) {
     }
   };
 
-  const exportUsageCSV = async () => {
+  const exportUsageCSVHandler = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/usage/export`);
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `usage_report_${Date.now()}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const blob = await exportUsageCSV();
+      downloadBlob(blob, `usage_report_${Date.now()}.csv`);
       showNotification('Usage report downloaded', 'success');
     } catch (error) {
       console.error('Failed to export usage:', error);
@@ -569,10 +561,10 @@ export default function IMCreatorApp({ user, onLogout }) {
     }
   };
 
-  const resetUsageStats = async () => {
+  const resetUsageHandler = async () => {
     if (!window.confirm('Are you sure you want to reset all usage statistics? This cannot be undone.')) return;
     try {
-      await fetch(`${API_BASE}/api/usage/reset`, { method: 'POST' });
+      await resetUsageStats();
       await fetchUsageData();
       showNotification('Usage statistics reset', 'success');
     } catch (error) {
@@ -643,13 +635,7 @@ export default function IMCreatorApp({ user, onLogout }) {
       };
       
       const theme = formData.templateStyle || 'modern-blue';
-      const response = await fetch(`${API_BASE}/api/generate-pptx`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: dataToSend, theme })
-      });
-      
-      const result = await response.json();
+      const result = await generatePPTX(dataToSend, theme);
       
       if (result.success && result.fileData) {
         downloadBase64File(result.fileData, result.filename, result.mimeType);
@@ -705,24 +691,8 @@ export default function IMCreatorApp({ user, onLogout }) {
     try {
       showNotification('Generating Word document...', 'info');
       
-      const response = await fetch(`${API_BASE}/api/export-qa-word`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          data: { ...formData, caseStudies }, 
-          questionnaire 
-        })
-      });
-      
-      if (!response.ok) throw new Error('Failed to generate document');
-      
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${formData.projectCodename || 'QA'}_Document.docx`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const blob = await exportQAWord({ ...formData, caseStudies }, questionnaire);
+      downloadBlob(blob, `${formData.projectCodename || 'QA'}_Document.docx`);
       
       showNotification('Word document downloaded!', 'success');
     } catch (error) {
