@@ -1,6 +1,6 @@
 """
 IM Creator - AI Layout Engine
-Version: 8.0.0
+Version: 8.1.0
 
 Uses Claude AI to analyze data and recommend optimal layouts for each slide.
 NOW WITH INTEGRATED USAGE TRACKING!
@@ -144,15 +144,7 @@ Guidelines:
             messages=[{"role": "user", "content": prompt}]
         )
         
-        # LEGACY tracking
-        track_usage(
-            "claude-3-haiku-20240307",
-            response.usage.input_tokens,
-            response.usage.output_tokens,
-            f"AI Layout: {slide_type}"
-        )
-        
-        # NEW: Track with new usage tracker
+        # v8.1.0: Single tracking via new usage tracker (removed legacy dual tracking)
         tracker = get_tracker()
         tracker.track_call(
             model="claude-3-haiku-20240307",
@@ -232,18 +224,7 @@ Guidelines:
             messages=[{"role": "user", "content": prompt}]
         )
         
-        # ====================================================================
-        # CRITICAL: USAGE TRACKING INTEGRATION
-        # ====================================================================
-        # Track with LEGACY tracker (for backward compatibility)
-        track_usage(
-            "claude-3-haiku-20240307",
-            response.usage.input_tokens,
-            response.usage.output_tokens,
-            f"AI Layout: {slide_type}"
-        )
-        
-        # Track with NEW v8.0 usage tracker (for frontend Usage button)
+        # v8.1.0: Single tracking via new usage tracker (removed legacy dual tracking)
         tracker = get_tracker()
         tracker.track_call(
             model="claude-3-haiku-20240307",
@@ -251,7 +232,6 @@ Guidelines:
             output_tokens=response.usage.output_tokens,
             purpose=f"analyze_layout_{slide_type}"
         )
-        # ====================================================================
         
         text = response.content[0].text
         

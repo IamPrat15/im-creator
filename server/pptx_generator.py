@@ -1,12 +1,13 @@
 """
 IM Creator Python Backend - PPTX Generator
-Version: 7.1.0
+Version: 8.1.0
 
 Implements Requirements #15-18:
 - Universal createSlide() wrapper
 - Dedicated render functions for each slide type
 - Chart helper addChartByType()
 - AI-powered layout recommendations applied consistently
+- v8.1.0: Fixed critical bugs, added leadership/toc/risks slides, multi case study loop
 """
 
 from pptx import Presentation
@@ -291,9 +292,43 @@ def add_progress_bars(slide, colors, x, y, w, h, items, font_adj=0):
         tb.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["white"])
 
 def add_stacked_bar_chart(slide, colors, x, y, w, h, data, font_adj=0):
-    """Add stacked bar chart"""
-    # Simplified stacked bar - can be enhanced
-    return add_bar_chart(slide, colors, x, y, w, h, data, font_adj)
+    """Add stacked bar chart with multiple series - v8.1.0 fixed"""
+    if not data:
+        return
+
+    chart_data = CategoryChartData()
+
+    # Multi-series format: [{"label": "Q1", "values": {"A": 10, "B": 20}}]
+    if data and isinstance(data[0].get("values", None), dict):
+        categories = [d.get("label", "") for d in data]
+        chart_data.categories = categories
+
+        series_names = set()
+        for d in data:
+            series_names.update(d.get("values", {}).keys())
+
+        for series_name in sorted(series_names):
+            values = tuple(safe_float(d.get("values", {}).get(series_name, 0)) for d in data)
+            chart_data.add_series(series_name, values)
+
+        chart = slide.shapes.add_chart(
+            XL_CHART_TYPE.COLUMN_STACKED,
+            Inches(x), Inches(y), Inches(w), Inches(h),
+            chart_data
+        ).chart
+
+        chart.has_legend = True
+        chart.plots[0].has_data_labels = True
+
+        chart_colors = [colors["primary"], colors["secondary"], colors.get("accent", "#48BB78")]
+        for i, series in enumerate(chart.series):
+            color = chart_colors[i % len(chart_colors)]
+            series.format.fill.solid()
+            series.format.fill.fore_color.rgb = hex_to_rgb(color)
+
+        return chart
+    else:
+        return add_bar_chart(slide, colors, x, y, w, h, data, font_adj)
 
 # ============================================================================
 # REQUIREMENT #16: DEDICATED RENDER FUNCTIONS
@@ -778,6 +813,224 @@ def render_thank_you_slide(slide, colors, data, doc_config):
         contact_tb.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["white"])
         contact_tb.text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
 
+#=============================================================================
+# RISK FACTORS (CIM only) - v8.1.0 FIXED: uses add_slide_header not slide.shapes.title
+#=============================================================================
+def render_risk_factors(slide, colors, data, page_num, layout_rec, context):
+    """Render risk factors slide for CIM documents - v8.1.0 fixed"""
+    font_adj = layout_rec.get("font_adjustment", 0)
+    
+    risks = []
+    if data.get("businessRisks"):
+        risks.append(("Business Risks", data["businessRisks"]))
+    if data.get("marketRisks"):
+        risks.append(("Market Risks", data["marketRisks"]))
+    if data.get("operationalRisks"):
+        risks.append(("Operational Risks", data["operationalRisks"]))
+    if data.get("mitigationStrategies"):
+        risks.append(("Mitigation Strategies", data["mitigationStrategies"]))
+
+    if not risks:
+        return None
+
+    add_slide_header(slide, colors, "Risk Factors & Mitigation", font_adj=font_adj)
+    add_slide_footer(slide, colors, page_num)
+    add_section_box(slide, colors, 0.3, 0.95, 9.4, 3.8)
+
+    y_pos = 1.3
+    for category, risk_content in risks:
+        if y_pos > 4.2:
+            break
+        # Category title
+        tb_title = slide.shapes.add_textbox(Inches(0.5), Inches(y_pos), Inches(9.0), Inches(0.25))
+        tb_title.text_frame.text = category
+        tb_title.text_frame.paragraphs[0].font.size = Pt(adjusted_font(13, font_adj))
+        tb_title.text_frame.paragraphs[0].font.bold = True
+        tb_title.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["primary"])
+        y_pos += 0.3
+
+        # Risk content
+        tb_content = slide.shapes.add_textbox(Inches(0.7), Inches(y_pos), Inches(8.6), Inches(0.5))
+        tb_content.text_frame.text = truncate_description(risk_content, 200)
+        tb_content.text_frame.paragraphs[0].font.size = Pt(adjusted_font(10, font_adj))
+        tb_content.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["text"])
+        tb_content.text_frame.word_wrap = True
+        y_pos += 0.65
+
+    return slide
+
+
+# =============================================================================
+# LEADERSHIP SLIDE - v8.1.0 NEW
+# =============================================================================
+def render_leadership(slide, colors, data, page_num, layout_rec, context):
+    """Render leadership team slide - v8.1.0 new"""
+    font_adj = layout_rec.get("font_adjustment", 0)
+
+    add_slide_header(slide, colors, "Leadership Team", font_adj=font_adj)
+    add_slide_footer(slide, colors, page_num)
+    add_section_box(slide, colors, 0.3, 0.95, 9.4, 3.8)
+
+    y_pos = 1.2
+
+    # Founder info
+    founder_name = data.get("founderName") or ""
+    founder_title = data.get("founderTitle") or ""
+    founder_exp = data.get("founderExperience") or ""
+    founder_edu = data.get("founderEducation") or ""
+
+    if founder_name:
+        # Founder card
+        bg = slide.shapes.add_shape(
+            MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.5), Inches(y_pos), Inches(9.0), Inches(1.0)
+        )
+        bg.fill.solid()
+        bg.fill.fore_color.rgb = hex_to_rgb(colors.get("light", "#F0F4F8"))
+        bg.line.fill.background()
+
+        tb = slide.shapes.add_textbox(Inches(0.7), Inches(y_pos + 0.1), Inches(8.6), Inches(0.3))
+        tb.text_frame.text = f"{founder_name} — {founder_title}"
+        tb.text_frame.paragraphs[0].font.size = Pt(adjusted_font(14, font_adj))
+        tb.text_frame.paragraphs[0].font.bold = True
+        tb.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["primary"])
+
+        details = []
+        if founder_exp:
+            details.append(f"{founder_exp} years experience")
+        if founder_edu:
+            details.append(f"Education: {founder_edu}")
+        if details:
+            tb2 = slide.shapes.add_textbox(Inches(0.7), Inches(y_pos + 0.5), Inches(8.6), Inches(0.4))
+            tb2.text_frame.text = " | ".join(details)
+            tb2.text_frame.paragraphs[0].font.size = Pt(adjusted_font(10, font_adj))
+            tb2.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["text"])
+
+        y_pos += 1.2
+
+    # Leadership team members
+    leadership_text = data.get("leadershipTeam") or data.get("leadership_team") or ""
+    if leadership_text:
+        team_members = parse_pipe_separated(leadership_text, 6)
+        for member in team_members:
+            if y_pos > 4.3:
+                break
+            if member and len(member) >= 2:
+                name = member[0].strip()
+                title = member[1].strip()
+                tb = slide.shapes.add_textbox(Inches(0.7), Inches(y_pos), Inches(8.6), Inches(0.35))
+                tb.text_frame.text = f"• {name} — {title}"
+                tb.text_frame.paragraphs[0].font.size = Pt(adjusted_font(11, font_adj))
+                tb.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["text"])
+                y_pos += 0.4
+
+    return slide
+
+
+# =============================================================================
+# TABLE OF CONTENTS (CIM only) - v8.1.0 NEW
+# =============================================================================
+def render_toc(slide, colors, data, page_num, layout_rec, context):
+    """Render table of contents for CIM documents - v8.1.0 new"""
+    font_adj = layout_rec.get("font_adjustment", 0)
+
+    add_slide_header(slide, colors, "Table of Contents", font_adj=font_adj)
+    add_slide_footer(slide, colors, page_num)
+
+    # Determine which sections are in the presentation
+    doc_config = context.get("doc_config", {})
+    required = doc_config.get("required_slides", [])
+    optional = doc_config.get("optional_slides", [])
+
+    section_names = {
+        "title": "Cover Page",
+        "disclaimer": "Disclaimer",
+        "toc": "Table of Contents",
+        "executive-summary": "Executive Summary",
+        "services": "Services & Products",
+        "clients": "Client Overview",
+        "financials": "Financial Performance",
+        "growth": "Growth Strategy",
+        "case-study": "Case Studies",
+        "market-position": "Market Position",
+        "leadership": "Leadership Team",
+        "risks": "Risk Factors",
+        "synergies": "Synergy Analysis",
+        "appendix-financials": "Appendix A: Detailed Financials",
+        "appendix-team-bios": "Appendix B: Team Biographies",
+        "appendix-case-studies": "Appendix C: Additional Case Studies",
+        "thank-you": "Contact Information",
+    }
+
+    y_pos = 1.2
+    section_num = 1
+
+    all_slides = required + optional
+    for slide_id in all_slides:
+        if slide_id in ("title", "toc", "disclaimer"):
+            continue  # Skip non-content slides
+        name = section_names.get(slide_id, slide_id.replace("-", " ").title())
+
+        # Draw section entry
+        tb = slide.shapes.add_textbox(Inches(0.8), Inches(y_pos), Inches(7.5), Inches(0.3))
+        tb.text_frame.text = f"{section_num}.  {name}"
+        tb.text_frame.paragraphs[0].font.size = Pt(adjusted_font(12, font_adj))
+        tb.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["text"])
+
+        # Dotted line separator
+        line = slide.shapes.add_shape(
+            MSO_SHAPE.RECTANGLE, Inches(8.5), Inches(y_pos + 0.15), Inches(0.8), Inches(0.02)
+        )
+        line.fill.solid()
+        line.fill.fore_color.rgb = hex_to_rgb(colors.get("border", "#CBD5E0"))
+        line.line.fill.background()
+
+        y_pos += 0.35
+        section_num += 1
+
+        if y_pos > 4.5:
+            break
+
+    return slide
+
+
+# =============================================================================
+# COMPANY OVERVIEW - v8.1.0 NEW
+# =============================================================================
+def render_company_overview(slide, colors, data, page_num, layout_rec, context):
+    """Render company overview slide - v8.1.0 new"""
+    font_adj = layout_rec.get("font_adjustment", 0)
+
+    add_slide_header(slide, colors, "Company Overview", font_adj=font_adj)
+    add_slide_footer(slide, colors, page_num)
+    add_section_box(slide, colors, 0.3, 0.95, 9.4, 3.8)
+
+    y_pos = 1.3
+
+    description = data.get("companyDescription") or ""
+    if description:
+        tb = slide.shapes.add_textbox(Inches(0.5), Inches(y_pos), Inches(9.0), Inches(1.2))
+        tb.text_frame.text = truncate_description(description, 400)
+        tb.text_frame.paragraphs[0].font.size = Pt(adjusted_font(11, font_adj))
+        tb.text_frame.paragraphs[0].font.color.rgb = hex_to_rgb(colors["text"])
+        tb.text_frame.word_wrap = True
+        y_pos += 1.4
+
+    # Key facts row
+    facts = []
+    if data.get("foundedYear"):
+        facts.append(("Founded", str(data["foundedYear"])))
+    if data.get("headquarters"):
+        facts.append(("HQ", data["headquarters"]))
+    if data.get("employeeCountFT"):
+        facts.append(("Employees", str(data["employeeCountFT"])))
+
+    if facts:
+        col_width = 9.0 / max(len(facts), 1)
+        for i, (label, value) in enumerate(facts[:4]):
+            x = 0.5 + i * col_width
+            add_metric_card(slide, colors, x, y_pos, col_width - 0.2, 1.0, value, label)
+
+    return slide
 
 # ============================================================================
 # REQUIREMENT #15: UNIVERSAL createSlide() WRAPPER
@@ -794,6 +1047,28 @@ def create_slide(slide_type: str, prs: Presentation, colors: dict, data: dict, p
     
     Returns: Updated page number (or None if slide not created)
     """
+    # Guard clauses: skip if data missing
+    if slide_type == "case-study" and not (data.get("caseStudies") or data.get("cs1Client")):
+        return None
+    if slide_type == "financials" and not (data.get("revenueFY24") or data.get("revenueFY25")):
+        return None
+    if slide_type == "market-position" and not (data.get("competitiveAdvantages") or data.get("marketSize")):
+        return None
+    if slide_type.startswith("appendix") and slide_type.replace("appendix-", "") not in [a.replace("appendix-", "") for a in data.get("includeAppendix", [slide_type])]:
+        return None
+
+    if slide_type == "appendix-team-bios" and "team-bios" in data.get("includeAppendix", []) and not data.get("teamBios"):
+        return None
+
+    if slide_type == "appendix-case-studies":
+        case_studies = data.get("caseStudies") or []
+        if len(case_studies) <= 2:
+            return None
+
+    if slide_type == "synergies" and not (data.get("synergiesStrategic") or data.get("synergiesFinancial")):
+        return None
+
+    
     blank_layout = prs.slide_layouts[6]
     slide = prs.slides.add_slide(blank_layout)
     
@@ -853,11 +1128,26 @@ def create_slide(slide_type: str, prs: Presentation, colors: dict, data: dict, p
                     "solution": data.get("cs1Solution"),
                     "results": data.get("cs1Results")
                 })
+
+        if not case_studies:
+            return None
+
+        # v8.1.0: Render first case study on current slide
+        render_case_study(slide, colors, data, page_num, case_studies[0], layout_rec, context)
+        page_num += 1
+
+        # Determine max case studies based on document type
+        doc_config = context.get("doc_config", {})
+        max_cs = doc_config.get("max_case_studies", 2)
         
-        if case_studies:
-            render_case_study(slide, colors, data, page_num, case_studies[0], layout_rec, context)
-            return page_num + 1
-        return None
+        # v8.1.0: Loop additional case studies on separate slides (up to max)
+        for i, cs in enumerate(case_studies[1:max_cs], start=2):
+            blank_layout = prs.slide_layouts[6]
+            extra_slide = prs.slides.add_slide(blank_layout)
+            render_case_study(extra_slide, colors, data, page_num, cs, layout_rec, context)
+            page_num += 1
+
+        return page_num
     
     elif slide_type == "growth":
         render_growth(slide, colors, data, page_num, layout_rec, context)
@@ -869,6 +1159,22 @@ def create_slide(slide_type: str, prs: Presentation, colors: dict, data: dict, p
     
     elif slide_type == "synergies":
         render_synergies(slide, colors, data, page_num, layout_rec, context)
+        return page_num + 1
+    
+    elif slide_type == "leadership":
+        render_leadership(slide, colors, data, page_num, layout_rec, context)
+        return page_num + 1
+    
+    elif slide_type == "toc":
+        render_toc(slide, colors, data, page_num, layout_rec, context)
+        return page_num + 1
+    
+    elif slide_type == "risks":
+        render_risk_factors(slide, colors, data, page_num, layout_rec, context)
+        return page_num + 1
+    
+    elif slide_type == "company-overview":
+        render_company_overview(slide, colors, data, page_num, layout_rec, context)
         return page_num + 1
     
     elif slide_type == "appendix-financials":
@@ -890,8 +1196,6 @@ def create_slide(slide_type: str, prs: Presentation, colors: dict, data: dict, p
     else:
         # Unknown slide type - skip
         return None
-
-
 # ============================================================================
 # REQUIREMENT #18: MAIN GENERATOR WITH SLIDE ITERATION
 # ============================================================================

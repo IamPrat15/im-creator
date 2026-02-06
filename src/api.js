@@ -1,5 +1,5 @@
 // API Service for IM Creator
-// Version: 8.0.0
+// Version: 8.1.0
 // Handles all backend communication
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';

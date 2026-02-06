@@ -1,6 +1,6 @@
 """
 IM Creator Python Backend - FastAPI Application
-Version: 7.2.0
+Version: 8.1.0
 
 Main entry point with all API endpoints.
 """
@@ -12,7 +12,6 @@ import base64
 
 from usage_tracker import get_tracker
 from state_manager import PresentationStateManager
-from fastapi.responses import Response
 
 from datetime import datetime
 from pathlib import Path
@@ -24,16 +23,12 @@ from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-'''from models import (
-    VERSION, PROFESSIONAL_TEMPLATES, INDUSTRY_DATA, DOCUMENT_CONFIGS,
-    GeneratePPTXRequest, GeneratePPTXRequestWrapper
-)'''
 from models import (
     VERSION, PROFESSIONAL_TEMPLATES, INDUSTRY_DATA, DOCUMENT_CONFIGS
 )
 
 from pptx_generator import generate_presentation
-from ai_layout_engine import get_usage_stats, reset_usage_stats
+from ai_layout_engine import analyze_data_for_layout_sync  # Only import what we need
 
 # Load environment variables
 load_dotenv()
@@ -116,48 +111,6 @@ async def get_document_types():
     return DOCUMENT_CONFIGS
 
 # ============================================================================
-# USAGE TRACKING ENDPOINTS
-# ============================================================================
-
-@app.get("/api/usage")
-async def get_usage():
-    """Get AI API usage statistics"""
-    return get_usage_stats()
-
-@app.post("/api/usage/reset")
-async def reset_usage():
-    """Reset usage statistics"""
-    reset_usage_stats()
-    return {"success": True, "message": "Usage statistics reset"}
-
-@app.get("/api/usage/export")
-async def export_usage():
-    """Export usage to CSV"""
-    stats = get_usage_stats()
-    
-    headers = ["Timestamp", "Model", "Input Tokens", "Output Tokens", "Cost (USD)", "Purpose"]
-    rows = []
-    for call in stats.get("recent_calls", []):
-        rows.append([
-            call.get("timestamp", ""),
-            call.get("model", ""),
-            str(call.get("input_tokens", 0)),
-            str(call.get("output_tokens", 0)),
-            call.get("cost_usd", "0"),
-            call.get("purpose", "")
-        ])
-    
-    csv_content = ",".join(headers) + "\n"
-    for row in rows:
-        csv_content += ",".join([f'"{v}"' for v in row]) + "\n"
-    
-    return Response(
-        content=csv_content,
-        media_type="text/csv",
-        headers={"Content-Disposition": "attachment; filename=usage_report.csv"}
-    )
-
-# ============================================================================
 # PPTX GENERATION ENDPOINT
 # ============================================================================
 
@@ -165,50 +118,7 @@ class GenerateRequest(BaseModel):
     data: Dict[str, Any]
     theme: Optional[str] = "modern-blue"
 
-'''@app.post("/api/generate-pptx")
-async def generate_pptx(request: GenerateRequest):
-    """Generate PowerPoint presentation"""
-    try:
-        data = request.data
-        theme = request.theme or "modern-blue"
-        
-        print(f"\n{'='*50}")
-        print(f"Generating PPTX with Python Backend v{VERSION['string']}")
-        print(f"Theme: {theme}")
-        print(f"Document Type: {data.get('documentType') or data.get('document_type') or 'management-presentation'}")
-        print(f"Company: {data.get('companyName') or data.get('company_name') or 'Unknown'}")
-        print(f"{'='*50}")
-        
-        # Generate presentation
-        prs = await generate_presentation(data, theme)
-        
-        # Generate filename
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        codename = (data.get("projectCodename") or data.get("project_codename") or "Project").replace(" ", "_")
-        codename = "".join(c for c in codename if c.isalnum() or c == "_")
-        filename = f"{codename}_{timestamp}.pptx"
-        filepath = TEMP_DIR / filename
-        
-        # Save presentation
-        prs.save(str(filepath))
-        
-        print(f"Generated: {filename}")
-        print(f"File size: {filepath.stat().st_size / 1024:.1f} KB")
-        
-        # Return file
-        return FileResponse(
-            path=str(filepath),
-            filename=filename,
-            media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            background=None  # File will be deleted after response
-        )
-        
-    except Exception as e:
-        print(f"PPTX generation error: {e}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-'''
+
 @app.post("/api/generate-pptx")
 async def generate_pptx(request: GenerateRequest):
     """Generate PowerPoint presentation"""
@@ -223,7 +133,6 @@ async def generate_pptx(request: GenerateRequest):
         print(f"Company: {data.get('companyName') or data.get('company_name') or 'Unknown'}")
         print(f"{'='*50}")
         
-
         # ========================================
         # REQUIREMENT #7: CONDITIONAL VALIDATION
         # ========================================
@@ -251,12 +160,30 @@ async def generate_pptx(request: GenerateRequest):
             if not data.get("growthDrivers") and not data.get("growth_drivers"):
                 validation_errors.append("Growth drivers are required for CIM documents")
         
-        # Rule 4: If revenue provided, margins required
-        if (data.get("revenueFY25") or data.get("revenue_fy25")):
+        # Rule 4: Financial buyer needs EBITDA margin
+        if "financial" in buyer_types:
             if not data.get("ebitdaMarginFY25") and not data.get("ebitda_margin_fy25"):
-                validation_errors.append("EBITDA margin is required when FY25 revenue is provided")
+                validation_errors.append("EBITDA margin FY25 is required when targeting financial buyers")
         
-        # Rule 5: If including additional case studies, must have at least 3 total
+        # Rule 5: If revenue provided, margins recommended
+        if (data.get("revenueFY25") or data.get("revenue_fy25")):
+            if not data.get("grossMargin") and not data.get("gross_margin"):
+                pass  # Soft warning, not blocking
+
+        # Rule 6: CIM requires risk factors
+        if doc_type == "cim":
+            if not data.get("businessRisks") and not data.get("business_risks"):
+                validation_errors.append("At least one risk factor is required for CIM documents")
+
+        # Rule 7: Market variant requires competitor landscape
+        variants = data.get("generateVariants") or data.get("generate_variants") or []
+        if isinstance(variants, str):
+            variants = [variants]
+        if "market" in variants:
+            if not data.get("competitorLandscape") and not data.get("competitor_landscape") and not data.get("competitiveAdvantages"):
+                validation_errors.append("Competitive landscape data is required for Market Position variant")
+
+        # Rule 8: If including additional case studies, must have at least 3 total
         if data.get("includeAdditionalCaseStudies") or data.get("include_additional_case_studies"):
             case_studies = data.get("caseStudies") or []
             if len(case_studies) < 3:
@@ -275,7 +202,7 @@ async def generate_pptx(request: GenerateRequest):
                 }
             )
 
-        # Generate presentation
+        # v8.1.0 FIX: generate_presentation is sync, no await needed
         prs = generate_presentation(data, theme)
         
         # Generate filename
@@ -292,7 +219,6 @@ async def generate_pptx(request: GenerateRequest):
         print(f"File size: {filepath.stat().st_size / 1024:.1f} KB")
         
         # Read file and convert to base64
-        import base64
         with open(filepath, "rb") as f:
             file_bytes = f.read()
             file_base64 = base64.b64encode(file_bytes).decode('utf-8')
@@ -496,12 +422,31 @@ async def export_pdf(request: Dict[str, Any]):
         story.append(Paragraph(company, title_style))
         story.append(Spacer(1, 0.5*inch))
         
-        # Add sections
+        # Add sections - v8.1.0: expanded to match PPTX quality
         sections = [
             ("Company Overview", data.get("companyDescription") or ""),
             ("Investment Highlights", data.get("investmentHighlights") or ""),
-            ("Services", data.get("serviceLines") or ""),
+            ("Services & Products", data.get("serviceLines") or ""),
+            ("Client Overview", data.get("topClients") or ""),
+            ("Financial Performance", "\n".join(filter(None, [
+                f"Revenue FY24: {data.get('revenueFY24', 'N/A')}",
+                f"Revenue FY25: {data.get('revenueFY25', 'N/A')}",
+                f"Revenue FY26P: {data.get('revenueFY26P', 'N/A')}",
+                f"EBITDA Margin FY25: {data.get('ebitdaMarginFY25', 'N/A')}",
+                f"Gross Margin: {data.get('grossMargin', 'N/A')}",
+            ])) if (data.get("revenueFY24") or data.get("revenueFY25")) else ""),
             ("Growth Strategy", data.get("growthDrivers") or ""),
+            ("Competitive Advantages", data.get("competitiveAdvantages") or ""),
+            ("Market Position", data.get("marketSize") or ""),
+            ("Leadership", "\n".join(filter(None, [
+                f"Founder: {data.get('founderName', '')} - {data.get('founderTitle', '')}",
+                f"Team: {data.get('leadershipTeam', '')}",
+            ])) if data.get("founderName") else ""),
+            ("Risk Factors", "\n".join(filter(None, [
+                data.get("businessRisks", ""),
+                data.get("marketRisks", ""),
+                data.get("operationalRisks", ""),
+            ])) if data.get("businessRisks") else ""),
         ]
         
         for section_title, content in sections:
@@ -615,6 +560,92 @@ async def get_draft(project_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================================
+# MISSING ENDPOINTS - v8.1.0 NEW
+# ============================================================================
+
+class ValidateRequest(BaseModel):
+    data: Dict[str, Any]
+
+@app.post("/api/validate")
+async def validate_data(request: ValidateRequest):
+    """
+    Validate form data before generation - v8.1.0 new
+    Matches api.js validateData() function
+    """
+    data = request.data
+    errors = []
+    warnings = []
+    
+    # Required fields
+    if not data.get("companyName"):
+        errors.append({"field": "companyName", "msg": "Company name is required"})
+    if not data.get("documentType"):
+        errors.append({"field": "documentType", "msg": "Document type is required"})
+    
+    # Conditional rules
+    buyer_types = data.get("targetBuyerType", [])
+    if isinstance(buyer_types, str):
+        buyer_types = [buyer_types]
+    
+    if "strategic" in buyer_types and not data.get("synergiesStrategic"):
+        warnings.append({"field": "synergiesStrategic", "msg": "Strategic synergies recommended for strategic buyers"})
+    if "financial" in buyer_types and not data.get("ebitdaMarginFY25"):
+        errors.append({"field": "ebitdaMarginFY25", "msg": "EBITDA margin required for financial buyers"})
+    
+    doc_type = (data.get("documentType") or "").lower()
+    if doc_type == "cim":
+        if not data.get("leadershipTeam"):
+            warnings.append({"field": "leadershipTeam", "msg": "Leadership team recommended for CIM"})
+        if not data.get("businessRisks"):
+            errors.append({"field": "businessRisks", "msg": "Risk factors required for CIM"})
+    
+    return {
+        "valid": len(errors) == 0,
+        "errors": errors,
+        "warnings": warnings,
+        "field_count": len([v for v in data.values() if v])
+    }
+
+@app.get("/api/drafts")
+async def list_drafts():
+    """
+    List all saved drafts - v8.1.0 new
+    Matches api.js listDrafts() function
+    """
+    import json
+    drafts = []
+    for draft_file in DRAFTS_DIR.glob("*.json"):
+        try:
+            with open(draft_file, "r") as f:
+                data = json.load(f)
+            drafts.append({
+                "project_id": draft_file.stem,
+                "company_name": data.get("companyName", "Unknown"),
+                "document_type": data.get("documentType", ""),
+                "modified": datetime.fromtimestamp(draft_file.stat().st_mtime).isoformat()
+            })
+        except Exception:
+            continue
+    
+    return {"success": True, "drafts": sorted(drafts, key=lambda d: d["modified"], reverse=True)}
+
+@app.delete("/api/drafts/{project_id}")
+async def delete_draft(project_id: str):
+    """
+    Delete a draft - v8.1.0 new
+    Matches api.js deleteDraft() function
+    """
+    draft_path = DRAFTS_DIR / f"{project_id}.json"
+    if not draft_path.exists():
+        raise HTTPException(status_code=404, detail="Draft not found")
+    try:
+        draft_path.unlink()
+        return {"success": True, "message": f"Draft {project_id} deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================================
 # STARTUP
 # ============================================================================
 
@@ -632,6 +663,10 @@ async def startup_event():
     print(f"  ✓ 6 industry verticals")
     print(f"  ✓ 3 document types")
     print(f"{'='*60}\n")
+
+# ============================================================================
+# USAGE TRACKING ENDPOINTS (v8.1.0: single set, uses new tracker)
+# ============================================================================
 
 @app.get("/api/usage")
 async def get_usage():
@@ -653,6 +688,10 @@ async def reset_usage():
     tracker = get_tracker()
     tracker.reset()
     return {"success": True, "message": "Usage statistics reset"}
+
+# ============================================================================
+# DYNAMIC UPDATES (Requirement #8)
+# ============================================================================
 
 @app.post("/api/update-presentation")
 async def update_presentation(request: dict):

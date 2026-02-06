@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { generateIM, generatePPTX, saveDraft, checkHealth, downloadBase64File, getTemplates, getUsageStats, exportUsageCSV, resetUsageStats, exportQAWord, downloadBlob } from './api';
 
 // ============================================================================
-// IMCreatorApp v6.0 - Complete Production Build
+// IMCreatorApp v8.1.0 - Complete Production Build
 // ============================================================================
 // Features:
 // - Document Types (Management Presentation, CIM, Teaser)
@@ -149,38 +149,6 @@ const defaultQuestionnaire = {
         { id: 'marketSize', type: 'text', label: 'Total Addressable Market (TAM)', placeholder: 'e.g., $50B globally', order: 7 },
         { id: 'marketGrowthRate', type: 'text', label: 'Market Growth Rate', placeholder: 'e.g., 15% CAGR', order: 8 },
         { id: 'competitorLandscape', type: 'textarea', label: 'Key Competitors', placeholder: 'TCS | Global reach | Premium pricing\nInfosys | Strong brand | Less agile', helpText: 'Enter one competitor per line. Format: Name | Strength | Weakness. Required for Market Position variant.', order: 9 }
-      ]
-    },
-    {
-      id: 'appendix-options',
-      name: 'Appendix',
-      icon: '📎',
-      description: 'Optional detailed information',
-      questions: [
-        {
-          id: 'includeFinancialAppendix',
-          type: 'checkbox',
-          label: 'Include Detailed Financial Statements',
-          helpText: 'Adds comprehensive financial breakdown in appendix',
-          defaultValue: false,
-          order: 1
-        },
-        {
-          id: 'includeAdditionalCaseStudies',
-          type: 'checkbox',
-          label: 'Include All Case Studies in Appendix',
-          helpText: 'Adds case studies 3+ to appendix (requires 3+ case studies)',
-          defaultValue: false,
-          order: 2
-        },
-        {
-          id: 'includeTeamBios',
-          type: 'checkbox',
-          label: 'Include Detailed Team Biographies',
-          helpText: 'Adds comprehensive team bios in appendix',
-          defaultValue: false,
-          order: 3
-        }
       ]
     },
     {
@@ -427,15 +395,21 @@ export default function IMCreatorApp({ user, onLogout }) {
       });
     });
     
-    // v6: Conditional validations based on selections
+    // v8.1.0: Conditional MANDATORY validations per requirements
     if (formData.targetBuyerType?.includes('financial') && !formData.ebitdaMarginFY25) {
-      report.warnings.push({ phase: 'Financials', msg: 'EBITDA Margin recommended for financial buyers' });
+      report.errors.push({ phase: 'Financials', field: 'EBITDA Margin FY25', msg: 'Required for financial buyers' });
     }
-    if (formData.generateVariants?.includes('market') && !formData.marketSize) {
-      report.warnings.push({ phase: 'Growth Strategy', msg: 'Market size recommended for Market Position variant' });
+    if (formData.targetBuyerType?.includes('strategic') && !formData.synergiesStrategic) {
+      report.warnings.push({ phase: 'Synergies', msg: 'Strategic synergies recommended when targeting strategic buyers' });
+    }
+    if (formData.generateVariants?.includes('market') && !formData.competitorLandscape && !formData.competitiveAdvantages) {
+      report.errors.push({ phase: 'Growth Strategy', field: 'Competitive Landscape', msg: 'Required for Market Position variant' });
     }
     if (formData.documentType === 'cim' && !formData.businessRisks) {
-      report.warnings.push({ phase: 'Risk Factors', msg: 'Risk factors recommended for CIM documents' });
+      report.errors.push({ phase: 'Risk Factors', field: 'Business Risks', msg: 'At least one risk factor required for CIM' });
+    }
+    if (formData.documentType === 'cim' && !formData.leadershipTeam && !formData.founderName) {
+      report.warnings.push({ phase: 'Leadership', msg: 'Leadership team details recommended for CIM documents' });
     }
     
     const fy25 = parseFloat(formData.revenueFY25) || 0;
@@ -671,7 +645,7 @@ export default function IMCreatorApp({ user, onLogout }) {
       metadata: {
         projectCodename: formData.projectCodename,
         generatedAt: new Date().toISOString(),
-        version: '6.0.0'
+        version: '8.1.0'
       },
       formData,
       caseStudies

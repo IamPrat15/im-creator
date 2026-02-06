@@ -4,6 +4,10 @@ import React, { useState } from 'react';
 // APP VERSION - Semantic Versioning (Major.Minor.Patch)
 // ============================================================================
 // Version History:
+//   v8.1.0 - Bug fixes, leadership/toc/risks slides, multi case study,
+//            conditional validation, missing endpoints, version sync
+//   v8.0.0 - AI layout engine, blank slide elimination, dynamic updates
+//   v7.1.0 - Universal createSlide(), AI layout, dedicated render functions
 //   v6.0.0 - Document types, buyer types, industry content, 50 templates,
 //            unlimited case studies, auto-logout, Word/PDF/JSON export
 //   v5.0.0 - Usage dashboard, dynamic charts, hide empty sections, CSV export
@@ -12,7 +16,7 @@ import React, { useState } from 'react';
 //   v2.0.0 - Authentication, Office 365 SSO support
 //   v1.0.0 - Initial release
 // ============================================================================
-const APP_VERSION = 'v6.0.0';
+const APP_VERSION = 'v8.1.0';
 
 // Test credentials
 const TEST_CREDENTIALS = {

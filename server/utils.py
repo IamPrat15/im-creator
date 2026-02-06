@@ -1,6 +1,6 @@
 """
 IM Creator - Utility Functions
-Version: 7.2.0
+Version: 8.1.0
 
 Contains:
 - Text utilities (truncation, condensing, formatting)
@@ -464,11 +464,12 @@ def get_default_layout_recommendation(slide_type: str, data_preview: dict) -> di
 
 def get_slides_for_document_type(document_type: str, data: dict) -> list:
     """
-    FIXED v8.0: Strict slide ordering with Thank You ALWAYS last
-    Determines which slides to generate based on document type
+    v8.1.0: Strict slide ordering with Thank You ALWAYS last
+    Determines which slides to generate based on document type,
+    appendix selections, and content variants.
     """
     from models import DOCUMENT_CONFIGS
-    
+
     # STRICT SLIDE ORDER - Thank You NOT in this list (added at end)
     MAIN_SLIDE_ORDER = [
         "title",
@@ -483,25 +484,26 @@ def get_slides_for_document_type(document_type: str, data: dict) -> list:
         "case-study",
         "growth",
         "market-position",
+        "leadership",
         "synergies",
         "risks"
     ]
-    
+
     # Appendix slides order
     APPENDIX_ORDER = [
         "appendix-financials",
         "appendix-case-studies",
         "appendix-team-bios"
     ]
-    
+
     # Get document configuration
     config = DOCUMENT_CONFIGS.get(document_type, DOCUMENT_CONFIGS["management-presentation"])
     required_slides = set(config["required_slides"])
     optional_slides = set(config["optional_slides"])
-    
+
     # Build ordered list
     slides = []
-    
+
     # Add main slides in strict order
     for slide_type in MAIN_SLIDE_ORDER:
         if slide_type in required_slides:
@@ -509,17 +511,34 @@ def get_slides_for_document_type(document_type: str, data: dict) -> list:
         elif slide_type in optional_slides:
             if should_include_optional_slide(slide_type, data):
                 slides.append(slide_type)
-    
-    # Add appendix slides in order
-    for slide_type in APPENDIX_ORDER:
-        if should_include_optional_slide(slide_type, data):
-            slides.append(slide_type)
-    
+
+    # Add appendix slides in order, but only if selected and data exists
+    include_appendix = data.get("includeAppendix", [])
+    case_studies = data.get("caseStudies") or []
+
+    if "financial-detail" in include_appendix and data.get("revenueByService"):
+        slides.append("appendix-financials")
+
+    if "case-studies-extra" in include_appendix and len(case_studies) > 2:
+        slides.append("appendix-case-studies")
+
+    if "team-bios" in include_appendix and data.get("teamBios"):
+        slides.append("appendix-team-bios")
+
+    # Handle variants
+    variants = data.get("generateVariants", [])
+    if "synergy" in variants and (data.get("synergiesStrategic") or data.get("synergiesFinancial")):
+        if "synergies" not in slides:
+            slides.append("synergies")
+
+    if "market" in variants and data.get("competitorLandscape"):
+        if "market-position" not in slides:
+            slides.append("market-position")
+
     # CRITICAL: ALWAYS add thank-you at the END
     slides.append("thank-you")
-    
-    print(f"[v8.0] Slide order for {document_type}: {slides}")
-    
+
+    print(f"[v8.1.0] Slide order for {document_type}: {slides}")
     return slides
 
 
@@ -528,13 +547,13 @@ def should_include_optional_slide(slide_type: str, data: dict) -> bool:
     
     inclusion_rules = {
         "toc": lambda d: d.get("documentType") == "cim",
-        "leadership": lambda d: bool(d.get("founderName")),
+        "leadership": lambda d: bool(d.get("founderName") or d.get("leadershipTeam")),
         "company-overview": lambda d: bool(d.get("companyDescription")),
         "case-study": lambda d: bool(d.get("caseStudies") or d.get("cs1Client")),
         "growth": lambda d: bool(d.get("growthDrivers") or d.get("shortTermGoals")),
         "synergies": lambda d: bool(d.get("synergiesStrategic") or d.get("synergiesFinancial")),
         "market-position": lambda d: bool(d.get("marketSize") or d.get("competitiveAdvantages")),
-        "risks": lambda d: bool(d.get("riskFactors")),
+        "risks": lambda d: bool(d.get("businessRisks") or d.get("marketRisks") or d.get("operationalRisks")),
         "appendix-financials": lambda d: bool(d.get("includeFinancialAppendix")),
         "appendix-case-studies": lambda d: bool(d.get("includeAdditionalCaseStudies") and len(d.get("caseStudies", [])) > 2),
         "appendix-team-bios": lambda d: bool(d.get("includeTeamBios")),
@@ -617,7 +636,7 @@ def get_industry_specific_content(vertical: str, slide_type: str) -> dict:
         content["emphasis"] = industry_data.get("key_strengths", [])[:3]
     
     elif slide_type == "market-position":
-        content["benchmarks_text"] = f"Industry average: {industry_data['benchmarks'].get('growth_rate', 'N/A')}"
+        content["benchmarks_text"] = f"Industry avg growth: {industry_data['benchmarks'].get('avg_growth_rate', 'N/A')}"
         content["emphasis"] = ["market-leadership", "industry-expertise"]
     
     elif slide_type == "growth":
