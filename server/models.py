@@ -1,6 +1,6 @@
 """
 IM Creator - Data Models and Constants
-Version: 8.1.0
+Version: 7.2.0
 
 Contains:
 - Version management
@@ -20,37 +20,12 @@ from datetime import datetime
 # ============================================================================
 VERSION = {
     "major": 8,
-    "minor": 1,
+    "minor": 0,
     "patch": 0,
-    "string": "8.1.0",
-    "full": "v8.1.0",
-    "build_date": "2026-02-06",
+    "string": "8.0.0",
+    "full": "v8.0.0",
+    "build_date": "2026-02-05",
     "history": [
-        {
-            "version": "8.1.0",
-            "date": "2026-02-06",
-            "type": "minor",
-            "changes": [
-                "FIX: slideType NameError in create_slide() guard clauses",
-                "FIX: render_risk_factors crash on blank slide layout",
-                "FIX: Duplicate endpoint/function definitions removed",
-                "FIX: Slide type naming unified (title, toc, risks)",
-                "FIX: generate_presentation async/await mismatch",
-                "FIX: colors['primary'] type error - now uses hex_to_rgb()",
-                "NEW: render_leadership() slide function",
-                "NEW: render_toc() table of contents for CIM",
-                "NEW: render_company_overview() slide function",
-                "NEW: Risk factors wired into create_slide()",
-                "NEW: Multiple case study slides (CIM up to 5, MP up to 2)",
-                "NEW: Conditional mandatory validation (all rules)",
-                "NEW: listDrafts, deleteDraft, validate API endpoints",
-                "NEW: doc_config name field for correct title slide text",
-                "IMPROVED: PDF export with full sections and financials",
-                "IMPROVED: Buyer type content in more slide types",
-                "IMPROVED: Industry content in more slide types",
-                "IMPROVED: Stacked bar chart with real multi-series support"
-            ]
-        },
         {
             "version": "8.0.0",
             "date": "2026-02-05",
@@ -385,10 +360,12 @@ DOCUMENT_CONFIGS = {
         "name": "Management Presentation",
         "min_slides": 13,
         "max_slides": 20,
+        "max_case_studies": 2,
         "required_slides": [
             "title",
             "disclaimer",
             "executive-summary",
+            "investment-highlights",
             "services",
             "clients",
             "financials",
@@ -396,46 +373,57 @@ DOCUMENT_CONFIGS = {
             "case-study",
             "market-position",
             "leadership",
+            "synergies",
             "thank-you"
         ],
         "optional_slides": [
-            "synergies",
+            "company-overview",
             "appendix-case-studies"
-        ],
-        "max_case_studies": 2
+        ]
     },
 
     "cim": {
         "name": "Confidential Information Memorandum",
         "min_slides": 25,
         "max_slides": 40,
+        "max_case_studies": 5,
         "required_slides": [
             "title",
             "disclaimer",
             "toc",
             "executive-summary",
+            "investment-highlights",
+            "company-overview",
             "services",
+            "products",
+            "tech-partnerships",
             "clients",
+            "client-retention",
             "financials",
-            "growth",
+            "financial-detail",
             "case-study",
+            "growth",
+            "growth-goals",
             "market-position",
+            "competitive-detail",
             "leadership",
             "risks",
+            "synergies",
+            "transaction-summary",
             "thank-you"
         ],
         "optional_slides": [
             "appendix-financials",
             "appendix-team-bios",
             "appendix-case-studies"
-        ],
-        "max_case_studies": 5
+        ]
     },
 
     "teaser": {
         "name": "Teaser Document",
         "min_slides": 5,
         "max_slides": 7,
+        "max_case_studies": 0,
         "required_slides": [
             "title",
             "disclaimer",
@@ -445,8 +433,7 @@ DOCUMENT_CONFIGS = {
             "market-position",
             "thank-you"
         ],
-        "optional_slides": [],
-        "max_case_studies": 0
+        "optional_slides": []
     }
 }
 

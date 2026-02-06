@@ -1,6 +1,6 @@
 """
 IM Creator - Utility Functions
-Version: 8.1.0
+Version: 7.2.0
 
 Contains:
 - Text utilities (truncation, condensing, formatting)
@@ -464,7 +464,7 @@ def get_default_layout_recommendation(slide_type: str, data_preview: dict) -> di
 
 def get_slides_for_document_type(document_type: str, data: dict) -> list:
     """
-    v8.1.0: Strict slide ordering with Thank You ALWAYS last
+    FIXED v9.0: Strict slide ordering with Thank You ALWAYS last
     Determines which slides to generate based on document type,
     appendix selections, and content variants.
     """
@@ -479,14 +479,21 @@ def get_slides_for_document_type(document_type: str, data: dict) -> list:
         "investment-highlights",
         "company-overview",
         "services",
+        "products",
+        "tech-partnerships",
         "clients",
+        "client-retention",
         "financials",
+        "financial-detail",
         "case-study",
         "growth",
+        "growth-goals",
         "market-position",
+        "competitive-detail",
         "leadership",
         "synergies",
-        "risks"
+        "risks",
+        "transaction-summary"
     ]
 
     # Appendix slides order
@@ -538,7 +545,7 @@ def get_slides_for_document_type(document_type: str, data: dict) -> list:
     # CRITICAL: ALWAYS add thank-you at the END
     slides.append("thank-you")
 
-    print(f"[v8.1.0] Slide order for {document_type}: {slides}")
+    print(f"[v9.0] Slide order for {document_type}: {slides}")
     return slides
 
 
@@ -551,9 +558,17 @@ def should_include_optional_slide(slide_type: str, data: dict) -> bool:
         "company-overview": lambda d: bool(d.get("companyDescription")),
         "case-study": lambda d: bool(d.get("caseStudies") or d.get("cs1Client")),
         "growth": lambda d: bool(d.get("growthDrivers") or d.get("shortTermGoals")),
+        "growth-goals": lambda d: bool(d.get("shortTermGoals") or d.get("mediumTermGoals")),
         "synergies": lambda d: bool(d.get("synergiesStrategic") or d.get("synergiesFinancial")),
         "market-position": lambda d: bool(d.get("marketSize") or d.get("competitiveAdvantages")),
+        "competitive-detail": lambda d: bool(d.get("competitiveAdvantages") or d.get("competitorLandscape")),
         "risks": lambda d: bool(d.get("businessRisks") or d.get("marketRisks") or d.get("operationalRisks")),
+        "products": lambda d: bool(d.get("products")),
+        "tech-partnerships": lambda d: bool(d.get("techPartnerships")),
+        "client-retention": lambda d: bool(d.get("netRetention") or d.get("topClients")),
+        "financial-detail": lambda d: bool(d.get("revenueFY24") or d.get("revenueFY25")),
+        "investment-highlights": lambda d: bool(d.get("investmentHighlights")),
+        "transaction-summary": lambda d: d.get("documentType") == "cim",
         "appendix-financials": lambda d: bool(d.get("includeFinancialAppendix")),
         "appendix-case-studies": lambda d: bool(d.get("includeAdditionalCaseStudies") and len(d.get("caseStudies", [])) > 2),
         "appendix-team-bios": lambda d: bool(d.get("includeTeamBios")),
@@ -636,7 +651,7 @@ def get_industry_specific_content(vertical: str, slide_type: str) -> dict:
         content["emphasis"] = industry_data.get("key_strengths", [])[:3]
     
     elif slide_type == "market-position":
-        content["benchmarks_text"] = f"Industry avg growth: {industry_data['benchmarks'].get('avg_growth_rate', 'N/A')}"
+        content["benchmarks_text"] = f"Industry average: {industry_data['benchmarks'].get('growth_rate', 'N/A')}"
         content["emphasis"] = ["market-leadership", "industry-expertise"]
     
     elif slide_type == "growth":
